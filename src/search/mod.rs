@@ -1,9 +1,11 @@
-use serde::{Serialize, Deserialize};
 use regex::Regex;
-pub mod fxns;
+use serde::{Deserialize, Serialize};
+
+use crate::PitouFilePath;
+pub mod ops;
 
 #[derive(Clone, Serialize, Deserialize)]
-enum SearchType {
+pub(crate) enum SearchType {
     #[serde(with = "serde_regex")]
     Regex(Regex),
     MatchBegining(String),
@@ -12,18 +14,83 @@ enum SearchType {
 }
 
 impl SearchType {
-    fn matches(&self, input: &str) -> bool {
+    fn matches(&self, input: &str, sensitive: bool) -> bool {
         match self {
             Self::Regex(pattern) => pattern.is_match(input),
-            Self::MatchBegining(beginning) => input.starts_with(beginning),
-            Self::MatchMiddle(middle) => input.contains(middle),
-            Self::MatchEnding(ending) => input.ends_with(ending)
+            Self::MatchBegining(key) => {
+                if sensitive {
+                    input.starts_with(key)
+                } else {
+                    Self::starts_with_ignore_case(key, input)
+                }
+            }
+            Self::MatchMiddle(key) => {
+                if sensitive {
+                    input.contains(key)
+                } else {
+                    Self::contains_ignore_case(key, input)
+                }
+            }
+            Self::MatchEnding(key) => {
+                if sensitive {
+                    input.ends_with(key)
+                } else {
+                    Self::ends_with_ignore_case(key, input)
+                }
+            }
         }
+    }
+
+    fn starts_with_ignore_case(key: &str, input: &str) -> bool {
+        if input.len() < key.len() {
+            return false;
+        }
+        (0..key.len()).all(|i| {
+            let (v, u) = (key.as_bytes()[i], input.as_bytes()[i]);
+            let fc = if v > 96 && v < 123 { v - 32 } else { v };
+            let sc = if u > 96 && u < 123 { u - 32 } else { u };
+            fc == sc
+        })
+    }
+
+    fn ends_with_ignore_case(key: &str, input: &str) -> bool {
+        if input.len() < key.len() {
+            return false;
+        }
+        (0..key.len()).all(|i| {
+            let (v, u) = (
+                key.as_bytes()[key.len() - i - 1],
+                input.as_bytes()[input.len() - i - 1],
+            );
+            let fc = if v > 96 && v < 123 { v - 32 } else { v };
+            let sc = if u > 96 && u < 123 { u - 32 } else { u };
+            fc == sc
+        })
+    }
+
+    fn contains_ignore_case(key: &str, input: &str) -> bool {
+        if input.len() < key.len() {
+            return false;
+        }
+        (0..=(input.len() - key.len())).any(|b| {
+            (0..key.len()).all(|i| {
+                let (v, u) = (key.as_bytes()[i], input.as_bytes()[b + i]);
+                let fc = if v > 96 && v < 123 { v - 32 } else { v };
+                let sc = if u > 96 && u < 123 { u - 32 } else { u };
+                fc == sc
+            })
+        })
     }
 }
 
-#[derive(Clone, Serialize, Deserialize)]
-struct FileFilter {
+#[test]
+fn test_ignore_case_functions() {
+    let input = "zXcVbNm<>?";
+    let key = "CvbnM<>?";
+    assert!(SearchType::ends_with_ignore_case(key, input))
+}
+#[derive(Clone, Copy, Serialize, Deserialize)]
+pub(crate) struct FileFilter {
     files: bool,
     links: bool,
     dirs: bool,
@@ -37,7 +104,12 @@ impl FileFilter {
             dirs: true,
         }
     }
-    pub fn include_dir(self) -> bool {
+
+    pub fn all_filtered(self) -> bool {
+        !self.dirs && !self.files && !self.links    
+    }
+
+    pub fn include_dirs(self) -> bool {
         self.dirs
     }
 
@@ -50,23 +122,25 @@ impl FileFilter {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct SearchOptions {
-    hardware_accelerate: bool,
-    filter: FileFilter,
-    case_insensitive: bool,
-    depth: u8,
-    search_type: SearchType,
-    skip_errors: bool,
-    max_finds: usize,
+    pub(crate) search_dir: PitouFilePath,
+    pub(crate) hardware_accelerate: bool,
+    pub(crate) filter: FileFilter,
+    pub(crate) case_sensitive: bool,
+    pub(crate) depth: u8,
+    pub(crate) search_type: SearchType,
+    pub(crate) skip_errors: bool,
+    pub(crate) max_finds: usize,
 }
 
 impl SearchOptions {
-    pub fn new(key: String) -> Self {
+    pub fn new(search_dir: PitouFilePath, key: String) -> Self {
         Self {
+            search_dir,
             filter: FileFilter::new(),
             hardware_accelerate: false,
-            case_insensitive: true,
+            case_sensitive: true,
             depth: 6,
             search_type: SearchType::MatchMiddle(key),
             skip_errors: true,

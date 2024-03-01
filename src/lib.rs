@@ -3,6 +3,7 @@ use chrono::NaiveDateTime;
 use serde::{Serialize, Deserialize};
 mod ser_de;
 mod search;
+mod extra;
 
 /// Custom file type which is just a wrapper around the std `PathBuf` for cross-platform serialization and deserialization.
 pub struct PitouFilePath {
@@ -11,8 +12,8 @@ pub struct PitouFilePath {
 
 
 #[derive(Serialize, Deserialize)]
-pub struct PitouDate {
-    pub time: NaiveDateTime,
+pub struct PitouDateTime {
+    pub datetime: NaiveDateTime,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -54,9 +55,9 @@ impl PitouFileSize {
 
 #[derive(Serialize, Deserialize)]
 pub struct PitouFileMetadata {
-    pub modified: PitouDate,
-    pub accessed: PitouDate,
-    pub created: PitouDate,
+    pub modified: PitouDateTime,
+    pub accessed: PitouDateTime,
+    pub created: PitouDateTime,
     pub size: PitouFileSize,
     pub kind: PitouFileKind,
 }
@@ -64,6 +65,22 @@ pub struct PitouFileMetadata {
 pub struct PitouFile {
     pub path: PitouFilePath,
     pub metadata: PitouFileMetadata,
+}
+
+impl PitouFile {
+    pub fn is_dir(&self) -> bool {
+        matches!(self.metadata.kind, PitouFileKind::Directory)
+    }
+    pub fn is_link(&self) -> bool {
+        matches!(self.metadata.kind, PitouFileKind::Link)
+    }
+    pub fn is_file(&self) -> bool {
+        matches!(self.metadata.kind, PitouFileKind::File)
+    }
+
+    pub fn name(&self) -> &str {
+        self.path.path.file_name().unwrap().to_str().unwrap()
+    }
 }
 
 
