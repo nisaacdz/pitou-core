@@ -37,22 +37,24 @@ impl From<SystemTime> for PitouDateTime {
     }
 }
 
-impl From<Metadata> for PitouFileMetadata {
-    fn from(value: Metadata) -> Self {
-        Self {
-            modified: value.modified().unwrap().into(),
-            accessed: value.accessed().unwrap().into(),
-            created: value.created().unwrap().into(),
+impl TryFrom<Metadata> for PitouFileMetadata {
+    type Error = std::io::Error;
+    fn try_from(value: Metadata) -> Result<PitouFileMetadata, Self::Error> {
+        let res = Self {
+            modified: value.modified()?.into(),
+            accessed: value.accessed()?.into(),
+            created: value.created()?.into(),
             size: value.len().into(),
             kind: value.file_type().into()
-        }
+        };
+        Ok(res)
     }
 }
 
 impl PitouFile {
     pub fn new(path: PathBuf, metadata: Metadata) -> Self {
         let path = path.into();
-        let metadata = metadata.into();
+        let metadata = metadata.try_into().ok();
         Self { path, metadata }
     }
 }

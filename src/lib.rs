@@ -1,15 +1,16 @@
-use std::path::PathBuf;
 use chrono::NaiveDateTime;
-use serde::{Serialize, Deserialize};
-mod ser_de;
-mod search;
+use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 mod extra;
+pub mod fs_ops;
+pub mod search;
+pub mod frontend;
+mod ser_de;
 
 /// Custom file type which is just a wrapper around the std `PathBuf` for cross-platform serialization and deserialization.
 pub struct PitouFilePath {
     pub path: PathBuf,
 }
-
 
 #[derive(Serialize, Deserialize)]
 pub struct PitouDateTime {
@@ -20,7 +21,7 @@ pub struct PitouDateTime {
 pub enum PitouFileKind {
     Directory,
     File,
-    Link
+    Link,
 }
 
 #[derive(Clone, Copy)]
@@ -64,18 +65,34 @@ pub struct PitouFileMetadata {
 
 pub struct PitouFile {
     pub path: PitouFilePath,
-    pub metadata: PitouFileMetadata,
+    pub metadata: Option<PitouFileMetadata>,
 }
 
 impl PitouFile {
+    pub fn without_metadata(path: PathBuf) -> Self {
+        Self {
+            path: path.into(),
+            metadata: None,
+        }
+    }
+
     pub fn is_dir(&self) -> bool {
-        matches!(self.metadata.kind, PitouFileKind::Directory)
+        match &self.metadata {
+            None => false,
+            Some(metadata) => matches!(metadata.kind, PitouFileKind::Directory),
+        }
     }
     pub fn is_link(&self) -> bool {
-        matches!(self.metadata.kind, PitouFileKind::Link)
+        match &self.metadata {
+            None => false,
+            Some(metadata) => matches!(metadata.kind, PitouFileKind::Link),
+        }
     }
     pub fn is_file(&self) -> bool {
-        matches!(self.metadata.kind, PitouFileKind::File)
+        match &self.metadata {
+            None => false,
+            Some(metadata) => matches!(metadata.kind, PitouFileKind::File),
+        }
     }
 
     pub fn name(&self) -> &str {
@@ -83,10 +100,11 @@ impl PitouFile {
     }
 }
 
-
 #[test]
 fn test_serialization_n_deserialization() {
-    let path = PitouFilePath { path: PathBuf::from("D:/workspace/pitou") };
+    let path = PitouFilePath {
+        path: PathBuf::from("D:/workspace/pitou"),
+    };
     println!("original path: {}", path.path.display());
     let serialized_str = serde_json::to_string(&path).unwrap();
     println!("json form : {}", serialized_str);

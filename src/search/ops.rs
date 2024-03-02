@@ -4,18 +4,13 @@ use tokio::task::JoinHandle;
 
 use crate::PitouFile;
 
-use super::{FileFilter, SearchOptions, SearchType};
+use super::{SearchFilter, SearchOptions, SearchType};
 
 pub mod stream {
     use std::{
         collections::LinkedList,
         sync::{Arc, OnceLock},
     };
-
-    pub enum StreamWriteResult {
-        Success,
-        StreamTerminated,
-    }
 
     use tokio::sync::Mutex;
 
@@ -26,6 +21,10 @@ pub mod stream {
 
     fn get_stream() -> QUEUE {
         STREAM.get_or_init(|| Arc::new(Mutex::new(None))).clone()
+    }
+
+    pub async fn is_active() -> bool {
+        get_stream().lock().await.is_some()
     }
 
     pub async fn terminate_stream() {
@@ -40,22 +39,19 @@ pub mod stream {
         get_stream().lock().await.as_mut().map(|l| l.split_off(0))
     }
 
-    pub async fn write(find: PitouFile) -> StreamWriteResult {
+    pub async fn write(find: PitouFile) {
         get_stream()
             .lock()
             .await
             .as_mut()
-            .map(|l| {
-                l.push_back(find);
-                StreamWriteResult::Success
-            })
-            .unwrap_or(StreamWriteResult::StreamTerminated)
+            .map(|l| l.push_back(find));
     }
 }
 
+#[allow(unused)]
 #[derive(Clone)]
 struct SearchVariables {
-    filter: FileFilter,
+    filter: SearchFilter,
     case_sensitive: bool,
     depth: u8,
     search_type: Arc<SearchType>,
@@ -111,9 +107,7 @@ pub async fn search(options: SearchOptions) {
 
 #[async_recursion::async_recursion]
 async fn recursive_search(directory: PathBuf, mut variables: SearchVariables) {
-    if variables.depth == 0 {
-        return;
-    }
+    if variables.depth == 0 || !stream::is_active().await { return }
     variables.depth -= 1;
     let mut spawns = Vec::new();
     while let Ok(Some(de)) = tokio::fs::read_dir(&directory)
@@ -124,9 +118,7 @@ async fn recursive_search(directory: PathBuf, mut variables: SearchVariables) {
     {
         let file = PitouFile::new(de.path(), de.metadata().await.unwrap());
         if variables.include(&file) {
-            if let stream::StreamWriteResult::StreamTerminated = stream::write(file).await {
-                return safe_abort(spawns);
-            }
+            stream::write(file).await;
         }
         let vclone = variables.clone();
         spawns.push(tokio::spawn(async move {
@@ -136,7 +128,7 @@ async fn recursive_search(directory: PathBuf, mut variables: SearchVariables) {
     safe_return(spawns).await
 }
 
-#[inline]
+
 fn safe_abort(spawns: Vec<JoinHandle<()>>) {
     for handle in spawns {
         handle.abort();
@@ -146,13 +138,6 @@ fn safe_abort(spawns: Vec<JoinHandle<()>>) {
 #[inline]
 async fn safe_return(spawns: Vec<JoinHandle<()>>) {
     for handle in spawns {
-        match handle.await {
-            Ok(_) => (),
-            Err(e) => {
-                if !e.is_cancelled() {
-                    panic!("some unknown error caused panic!")
-                }
-            }
-        }
+        let _ = handle.await;
     }
 }

@@ -81,6 +81,10 @@ impl SearchType {
             })
         })
     }
+
+    fn parse_regex(reg_str: &str) -> Self {
+        Self::Regex(Regex::new(reg_str).unwrap())
+    }
 }
 
 #[test]
@@ -90,17 +94,25 @@ fn test_ignore_case_functions() {
     assert!(SearchType::ends_with_ignore_case(key, input))
 }
 #[derive(Clone, Copy, Serialize, Deserialize)]
-pub(crate) struct FileFilter {
+pub(crate) struct SearchFilter {
     files: bool,
     links: bool,
     dirs: bool,
 }
 
-impl FileFilter {
+impl SearchFilter {
     pub fn new() -> Self {
         Self {
             files: true,
             links: false,
+            dirs: true,
+        }
+    }
+
+    pub fn include_all() -> Self {
+        Self {
+            files: true,
+            links: true,
             dirs: true,
         }
     }
@@ -123,10 +135,59 @@ impl FileFilter {
 }
 
 #[derive(Serialize, Deserialize)]
+pub struct SimplifiedSearchOptions {
+    search_dir: PitouFilePath,
+    input: String,
+    search_kind: u8,
+    depth: u8,
+    case_sensitive: bool,
+    hardware_accelerate: bool,
+    skip_errors: bool,
+    filter: SearchFilter,
+    max_finds: usize,
+}
+
+impl From<SimplifiedSearchOptions> for SearchOptions {
+    fn from(value: SimplifiedSearchOptions) -> Self {
+        Self {
+            search_dir: value.search_dir,
+            filter: value.filter,
+            case_sensitive: value.case_sensitive,
+            hardware_accelerate: value.hardware_accelerate,
+            skip_errors: value.skip_errors,
+            depth: value.depth,
+            max_finds: value.max_finds,
+            search_type: match value.search_kind {
+                0 => SearchType::MatchBegining(value.input),
+                1 => SearchType::MatchEnding(value.input),
+                2 => SearchType::MatchMiddle(value.input),
+                _=> SearchType::parse_regex(&value.input)
+            }
+        }
+    }
+}
+
+impl SimplifiedSearchOptions {
+    pub fn default(current_dir: PitouFilePath) -> Self {
+        Self {
+            search_dir: current_dir,
+            input: String::new(),
+            search_kind: 1,
+            depth: 6,
+            case_sensitive: true,
+            hardware_accelerate: false,
+            skip_errors: true,
+            filter: SearchFilter::include_all(),
+            max_finds: 500,
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct SearchOptions {
     pub(crate) search_dir: PitouFilePath,
     pub(crate) hardware_accelerate: bool,
-    pub(crate) filter: FileFilter,
+    pub(crate) filter: SearchFilter,
     pub(crate) case_sensitive: bool,
     pub(crate) depth: u8,
     pub(crate) search_type: SearchType,
@@ -138,7 +199,7 @@ impl SearchOptions {
     pub fn new(search_dir: PitouFilePath, key: String) -> Self {
         Self {
             search_dir,
-            filter: FileFilter::new(),
+            filter: SearchFilter::new(),
             hardware_accelerate: false,
             case_sensitive: true,
             depth: 6,

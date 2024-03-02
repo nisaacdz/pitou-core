@@ -1,7 +1,30 @@
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer, ser::SerializeStruct};
 use std::path::{self, PathBuf};
 
-use crate::{PitouFilePath, PitouFileSize};
+use crate::{frontend::{AppMenu, TabCtx}, PitouFilePath, PitouFileSize};
+
+impl Serialize for TabCtx {
+    fn serialize<S: Serializer>(&self, sz: S) -> Result<S::Ok, S::Error> {
+        let mut ss = sz.serialize_struct("TabCtx", 2)?;
+        ss.serialize_field("current_dir", &self.current_dir)?;
+        ss.serialize_field("current_menu", &self.current_menu)?;
+        ss.end()
+    }
+}
+
+impl<'d> Deserialize<'d> for TabCtx {
+    fn deserialize<D: Deserializer<'d>>(dz: D) -> Result<Self, D::Error> {
+        #[derive(Serialize, Deserialize)]
+        struct TempVal {
+            current_dir: PitouFilePath,
+            current_menu: AppMenu,
+        }
+
+        let TempVal { current_dir, current_menu } = TempVal::deserialize(dz)?;
+        
+        Ok(TabCtx::new(current_dir, current_menu))
+    }
+}
 
 impl Serialize for PitouFileSize {
     fn serialize<S: Serializer>(&self, sz: S) -> Result<S::Ok, S::Error> {
@@ -45,4 +68,8 @@ fn serialize_pathbuf<S: Serializer>(path: &PathBuf, sz: S) -> Result<S::Ok, S::E
 #[inline]
 fn deserialize_pathbuf<'d, D: Deserializer<'d>>(dz: D) -> Result<PathBuf, D::Error> {
     PathBuf::deserialize(dz)
+}
+
+pub fn serialize<V: AsRef<T>, T: Serialize, S: Serializer>(val: V, sz: S) -> Result<S::Ok, S::Error> {
+    val.as_ref().serialize(sz)
 }
