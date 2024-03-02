@@ -1,26 +1,27 @@
 use std::{path::PathBuf, sync::Arc};
 
-use tokio::task::JoinHandle;
-
 use crate::PitouFile;
 
 use super::{SearchFilter, SearchOptions, SearchType};
 
 pub mod stream {
-    use std::{
-        collections::LinkedList,
-        sync::{Arc, OnceLock},
-    };
+    use std::{collections::LinkedList, sync::OnceLock};
 
-    use tokio::sync::Mutex;
+    use tokio::{sync::Mutex, task::JoinHandle};
 
     use crate::PitouFile;
-    type QUEUE = Arc<Mutex<Option<LinkedList<PitouFile>>>>;
+    type QUEUE = Mutex<Option<LinkedList<PitouFile>>>;
+    type SPAWNS = Mutex<LinkedList<JoinHandle<()>>>;
 
+    static HANDLES: OnceLock<SPAWNS> = OnceLock::new();
     static STREAM: OnceLock<QUEUE> = OnceLock::new();
 
-    fn get_stream() -> QUEUE {
-        STREAM.get_or_init(|| Arc::new(Mutex::new(None))).clone()
+    fn get_handles() -> &'static SPAWNS {
+        HANDLES.get_or_init(|| Mutex::new(LinkedList::new()))
+    }
+
+    fn get_stream() -> &'static QUEUE {
+        STREAM.get_or_init(|| Mutex::new(None))
     }
 
     pub async fn is_active() -> bool {
@@ -45,6 +46,22 @@ pub mod stream {
             .await
             .as_mut()
             .map(|l| l.push_back(find));
+    }
+
+    pub async fn append_handle(handle: JoinHandle<()>) {
+        get_handles().lock().await.push_back(handle);
+    }
+
+    pub async fn abort() {
+        for handle in get_handles().lock().await.split_off(0).into_iter().rev() {
+            handle.abort()
+        }
+    }
+
+    pub async fn wait_for_all_ops() {
+        for handle in get_handles().lock().await.split_off(0).into_iter().rev() {
+            let _ = handle.await;
+        }
     }
 }
 
@@ -94,22 +111,27 @@ impl SearchVariables {
 
 #[allow(unused)]
 pub async fn search(options: SearchOptions) {
+    let hardware_accelerate = options.hardware_accelerate;
     let (variables, directory) = options.into();
     if variables.filter.all_filtered() {
         return;
     }
     stream::begin_stream().await;
-    tokio::spawn(async {
+    tokio::spawn(async move {
         recursive_search(directory, variables).await;
-        stream::terminate_stream().await
+        stream::terminate_stream().await;
+        if hardware_accelerate {
+            stream::wait_for_all_ops().await;
+        }
     });
 }
 
 #[async_recursion::async_recursion]
 async fn recursive_search(directory: PathBuf, mut variables: SearchVariables) {
-    if variables.depth == 0 || !stream::is_active().await { return }
+    if variables.depth == 0 || !stream::is_active().await {
+        return;
+    }
     variables.depth -= 1;
-    let mut spawns = Vec::new();
     while let Ok(Some(de)) = tokio::fs::read_dir(&directory)
         .await
         .unwrap()
@@ -117,27 +139,15 @@ async fn recursive_search(directory: PathBuf, mut variables: SearchVariables) {
         .await
     {
         let file = PitouFile::new(de.path(), de.metadata().await.unwrap());
+        if file.is_dir() {
+            let vclone = variables.clone();
+            stream::append_handle(tokio::spawn(async move {
+                recursive_search(de.path(), vclone).await
+            }))
+            .await;
+        }
         if variables.include(&file) {
             stream::write(file).await;
         }
-        let vclone = variables.clone();
-        spawns.push(tokio::spawn(async move {
-            recursive_search(de.path(), vclone).await
-        }))
-    }
-    safe_return(spawns).await
-}
-
-
-fn safe_abort(spawns: Vec<JoinHandle<()>>) {
-    for handle in spawns {
-        handle.abort();
-    }
-}
-
-#[inline]
-async fn safe_return(spawns: Vec<JoinHandle<()>>) {
-    for handle in spawns {
-        let _ = handle.await;
     }
 }
