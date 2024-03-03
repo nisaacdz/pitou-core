@@ -69,7 +69,3 @@ fn serialize_pathbuf<S: Serializer>(path: &PathBuf, sz: S) -> Result<S::Ok, S::E
 fn deserialize_pathbuf<'d, D: Deserializer<'d>>(dz: D) -> Result<PathBuf, D::Error> {
     PathBuf::deserialize(dz)
 }
-
-pub fn serialize<V: AsRef<T>, T: Serialize, S: Serializer>(val: V, sz: S) -> Result<S::Ok, S::Error> {
-    val.as_ref().serialize(sz)
-}

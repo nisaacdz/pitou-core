@@ -4,6 +4,13 @@ use serde::{Deserialize, Serialize};
 
 use crate::{search::SimplifiedSearchOptions, PitouFile, PitouFilePath};
 
+pub(crate) mod msg;
+
+#[derive(Serialize, Deserialize)]
+pub enum ItemsView {
+    Grid, Rows, Tiles
+}
+
 #[derive(Clone, Copy, Serialize, Deserialize)]
 pub struct Color(u8, u8, u8, u8);
 
@@ -16,7 +23,6 @@ pub struct ColorTheme {
     spare1: Color,
     spare2: Color,
 }
-
 pub struct TabCtx {
     pub current_dir: PitouFilePath,
     pub current_menu: AppMenu,
@@ -27,7 +33,16 @@ pub struct TabCtx {
     pub dir_siblings: Option<Rc<Vec<PitouFile>>>,
 }
 
+impl PartialEq for TabCtx {
+    fn eq(&self, other: &Self) -> bool {
+        self.current_dir == other.current_dir && self.current_menu == other.current_menu
+    }
+}
+
 impl TabCtx {
+    pub fn default() -> Self {
+        TabCtx::new(PitouFilePath { path: std::path::PathBuf::from("C:\\Users\\nisaacdz") }, AppMenu::Explorer)
+    }
     pub fn new(current_dir: PitouFilePath, current_menu: AppMenu) -> Self {
         Self {
             search_options: SimplifiedSearchOptions::default(current_dir.path.clone().into()),
@@ -49,12 +64,38 @@ pub struct GenCtx {
     app_settings: AppSettings,
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct AppSettings {
-    
+impl GenCtx {
+    pub fn new() -> Self {
+        todo!()
+    }
 }
 
-#[derive(Clone, Copy, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
+pub struct AppSettings {
+    refresh_rate: u8,
+    show_extensions: bool,
+    single_click_opens: bool,
+    hide_impermisible: bool,
+    show_thumbnails: bool,
+    items_view: ItemsView,
+    items_zoom: f32,
+}
+
+impl Default for AppSettings {
+    fn default() -> Self {
+        Self {
+            refresh_rate: 250,
+            show_extensions: true,
+            single_click_opens: false,
+            hide_impermisible: true,
+            show_thumbnails: false,
+            items_view: ItemsView::Rows,
+            items_zoom: 1.0,
+        }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum AppMenu {
     Home,
     Explorer,

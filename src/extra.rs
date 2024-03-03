@@ -37,17 +37,15 @@ impl From<SystemTime> for PitouDateTime {
     }
 }
 
-impl TryFrom<Metadata> for PitouFileMetadata {
-    type Error = std::io::Error;
-    fn try_from(value: Metadata) -> Result<PitouFileMetadata, Self::Error> {
-        let res = Self {
-            modified: value.modified()?.into(),
-            accessed: value.accessed()?.into(),
-            created: value.created()?.into(),
+impl From<Metadata> for PitouFileMetadata {
+    fn from(value: Metadata) -> Self {
+        Self {
+            modified: value.modified().unwrap().into(),
+            accessed: value.accessed().unwrap().into(),
+            created: value.created().unwrap().into(),
             size: value.len().into(),
-            kind: value.file_type().into()
-        };
-        Ok(res)
+            kind: value.file_type().into(),
+        }
     }
 }
 

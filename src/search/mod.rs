@@ -2,6 +2,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 
 use crate::PitouFilePath;
+#[cfg(feature = "backend")]
 pub mod ops;
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -82,8 +83,15 @@ impl SearchType {
         })
     }
 
-    fn parse_regex(reg_str: &str) -> Self {
-        Self::Regex(Regex::new(reg_str).unwrap())
+    fn parse_regex(search_kind: u8, search_key: String) -> Option<Self> {
+        match search_kind {
+            0 => Some(SearchType::MatchBegining(search_key)),
+            1 => Some(SearchType::MatchEnding(search_key)),
+            2 => Some(SearchType::MatchMiddle(search_key)),
+            _ => regex::Regex::new(&search_key)
+                .map(|r| SearchType::Regex(r))
+                .ok(),
+        }
     }
 }
 
@@ -118,7 +126,7 @@ impl SearchFilter {
     }
 
     pub fn all_filtered(self) -> bool {
-        !self.dirs && !self.files && !self.links    
+        !self.dirs && !self.files && !self.links
     }
 
     pub fn include_dirs(self) -> bool {
@@ -147,26 +155,6 @@ pub struct SimplifiedSearchOptions {
     max_finds: usize,
 }
 
-impl From<SimplifiedSearchOptions> for SearchOptions {
-    fn from(value: SimplifiedSearchOptions) -> Self {
-        Self {
-            search_dir: value.search_dir,
-            filter: value.filter,
-            case_sensitive: value.case_sensitive,
-            hardware_accelerate: value.hardware_accelerate,
-            skip_errors: value.skip_errors,
-            depth: value.depth,
-            max_finds: value.max_finds,
-            search_type: match value.search_kind {
-                0 => SearchType::MatchBegining(value.input),
-                1 => SearchType::MatchEnding(value.input),
-                2 => SearchType::MatchMiddle(value.input),
-                _=> SearchType::parse_regex(&value.input)
-            }
-        }
-    }
-}
-
 impl SimplifiedSearchOptions {
     pub fn default(current_dir: PitouFilePath) -> Self {
         Self {
@@ -178,7 +166,25 @@ impl SimplifiedSearchOptions {
             hardware_accelerate: false,
             skip_errors: true,
             filter: SearchFilter::include_all(),
-            max_finds: 500,
+            max_finds: 250,
+        }
+    }
+
+    pub fn try_into(self) -> Option<SearchOptions> {
+        if let Some(search_type) = SearchType::parse_regex(self.search_kind, self.input) {
+            let obj = SearchOptions {
+                search_dir: self.search_dir,
+                filter: self.filter,
+                case_sensitive: self.case_sensitive,
+                hardware_accelerate: self.hardware_accelerate,
+                skip_errors: self.skip_errors,
+                depth: self.depth,
+                max_finds: self.max_finds,
+                search_type: search_type,
+            };
+            Some(obj)
+        } else {
+            None
         }
     }
 }

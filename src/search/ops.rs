@@ -8,8 +8,8 @@ pub mod stream {
     use std::{collections::LinkedList, sync::OnceLock};
 
     use tokio::{sync::Mutex, task::JoinHandle};
+    use crate::{PitouFile, frontend::msg::SearchMsg};
 
-    use crate::PitouFile;
     type QUEUE = Mutex<Option<LinkedList<PitouFile>>>;
     type SPAWNS = Mutex<LinkedList<JoinHandle<()>>>;
 
@@ -36,8 +36,8 @@ pub mod stream {
         let _ = get_stream().lock().await.insert(LinkedList::new());
     }
 
-    pub async fn read() -> Option<LinkedList<PitouFile>> {
-        get_stream().lock().await.as_mut().map(|l| l.split_off(0))
+    pub async fn read() -> SearchMsg {
+        get_stream().lock().await.as_mut().map(|l| SearchMsg::Active(l.split_off(0))).unwrap_or(SearchMsg::Terminated(LinkedList::new()))
     }
 
     pub async fn write(find: PitouFile) {

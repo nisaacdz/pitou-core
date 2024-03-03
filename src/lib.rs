@@ -2,12 +2,19 @@ use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 mod extra;
+#[cfg(feature = "backend")]
 pub mod fs_ops;
+
+#[cfg(feature = "backend")]
+mod data;
+
 pub mod search;
+
 pub mod frontend;
 mod ser_de;
 
 /// Custom file type which is just a wrapper around the std `PathBuf` for cross-platform serialization and deserialization.
+#[derive(PartialEq)]
 pub struct PitouFilePath {
     pub path: PathBuf,
 }
@@ -63,16 +70,23 @@ pub struct PitouFileMetadata {
     pub kind: PitouFileKind,
 }
 
+impl PitouFileMetadata {
+    fn attempt(path: &PathBuf) -> Option<Self> {
+        std::fs::metadata(path).map(|v| v.into()).ok()
+    }
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct PitouFile {
     pub path: PitouFilePath,
     pub metadata: Option<PitouFileMetadata>,
 }
 
 impl PitouFile {
-    pub fn without_metadata(path: PathBuf) -> Self {
+    pub fn from_pathbuf(path: PathBuf) -> Self {
         Self {
+            metadata: PitouFileMetadata::attempt(&path),
             path: path.into(),
-            metadata: None,
         }
     }
 

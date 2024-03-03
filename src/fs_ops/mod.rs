@@ -37,6 +37,10 @@ pub mod clipboard {
         get_clipboard().lock().await.clear()
     }
 
+    pub async fn is_empty() -> bool {
+        get_clipboard().lock().await.is_empty()
+    }
+
     pub async fn paste() -> Option<Arc<Vec<PitouFile>>> {
         let cb = get_clipboard();
         let mut guard = cb.lock().await;
@@ -83,5 +87,29 @@ pub async fn create_dir(dir: PitouFilePath) {
 pub async fn read_link(link: PitouFilePath) -> Option<crate::PitouFile> {
     tokio::fs::read_link(&link.path)
         .await
-        .map(|path| PitouFile::without_metadata(path)).ok()
+        .map(|path| PitouFile::from_pathbuf(path)).ok()
+}
+
+pub fn downloads_folder() -> PathBuf {
+    dirs::download_dir().unwrap()
+}
+
+pub fn desktop_folder() -> PathBuf {
+    dirs::desktop_dir().unwrap()
+}
+
+pub fn videos_folder() -> PathBuf {
+    dirs::video_dir().unwrap()
+}
+
+pub fn pictures_folder() -> PathBuf {
+    dirs::picture_dir().unwrap()
+}
+
+pub fn audios_folder() -> PathBuf {
+    dirs::audio_dir().unwrap()
+}
+
+pub fn documents_folder() -> PathBuf {
+    dirs::document_dir().unwrap()
 }
