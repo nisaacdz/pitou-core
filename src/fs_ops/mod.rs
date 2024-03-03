@@ -13,12 +13,12 @@ pub mod clipboard {
     }
 
     use crate::PitouFile;
-    type QUEUE = Arc<Mutex<Vec<ClipboardItem>>>;
+    type QUEUE = Mutex<Vec<ClipboardItem>>;
 
     static CLIPBOARD: OnceLock<QUEUE> = OnceLock::new();
 
-    fn get_clipboard() -> QUEUE {
-        CLIPBOARD.get_or_init(|| Arc::new(Mutex::new(Vec::new()))).clone()
+    fn get_clipboard() -> &'static QUEUE {
+        CLIPBOARD.get_or_init(|| Mutex::new(Vec::new()))
     }
 
     pub async fn copy(files: Vec<PitouFile>) {
