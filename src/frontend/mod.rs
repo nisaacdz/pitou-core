@@ -92,9 +92,14 @@ pub struct GenCtx {
     app_settings: AppSettings,
 }
 
-impl GenCtx {
-    pub fn new() -> Self {
-        todo!()
+impl Default for GenCtx {
+    fn default() -> Self {
+        Self {
+            app_width: 1366,
+            app_height: 768,
+            color_theme: ColorTheme::DEFAULT_DARK,
+            app_settings: AppSettings::default(),
+        }
     }
 }
 
