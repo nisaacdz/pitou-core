@@ -14,16 +14,16 @@ pub enum ItemsView {
 }
 
 #[derive(Clone, Copy, Serialize, Deserialize)]
-pub struct Color(u8, u8, u8, u8);
+pub struct Color(pub u8,pub u8,pub u8,pub u8);
 
 #[derive(Clone, Copy, Serialize, Deserialize)]
 pub struct ColorTheme {
-    background1: Color,
-    background2: Color,
-    foreground1: Color,
-    foreground2: Color,
-    spare1: Color,
-    spare2: Color,
+    pub background1: Color,
+    pub background2: Color,
+    pub foreground1: Color,
+    pub foreground2: Color,
+    pub spare1: Color,
+    pub spare2: Color,
 }
 
 impl ColorTheme {
@@ -86,10 +86,10 @@ impl TabCtx {
 
 #[derive(Serialize, Deserialize)]
 pub struct GenCtx {
-    app_width: i32,
-    app_height: i32,
-    color_theme: ColorTheme,
-    app_settings: AppSettings,
+    pub app_width: i32,
+    pub app_height: i32,
+    pub color_theme: ColorTheme,
+    pub app_settings: AppSettings,
 }
 
 impl Default for GenCtx {
@@ -105,13 +105,13 @@ impl Default for GenCtx {
 
 #[derive(Serialize, Deserialize)]
 pub struct AppSettings {
-    refresh_rate: u8,
-    show_extensions: bool,
-    single_click_opens: bool,
-    hide_impermisible: bool,
-    show_thumbnails: bool,
-    items_view: ItemsView,
-    items_zoom: f32,
+    pub refresh_rate: u8,
+    pub show_extensions: bool,
+    pub single_click_opens: bool,
+    pub hide_impermisible: bool,
+    pub show_thumbnails: bool,
+    pub items_view: ItemsView,
+    pub items_zoom: f32,
 }
 
 impl Default for AppSettings {
