@@ -50,6 +50,24 @@ impl ColorTheme {
         spare1: Color(153, 50, 204, 255),
         spare2: Color(255, 0, 0, 255),
     };
+
+    pub const GPT_LIGHT: Self = Self {
+        background1: Color(240, 240, 240, 255),
+        background2: Color( 255, 255, 255, 255),
+        foreground1: Color(80, 80, 80, 255),
+        foreground2: Color(0, 0, 0, 255),
+        spare1: Color(173, 216, 230, 255),
+        spare2: Color(144, 238, 144, 255),
+    };
+
+    pub const GPT_DARK: Self = Self {
+        background1: Color(50, 50, 50, 255),
+        background2: Color(105, 105, 105, 255),
+        foreground1: Color(240, 240, 240, 255),
+        foreground2: Color( 255, 255, 255, 255),
+        spare1: Color(65, 105, 225, 255),
+        spare2: Color(0, 128, 0, 255),
+    };
 }
 
 pub struct TabCtx {
@@ -64,6 +82,7 @@ pub struct TabCtx {
 
 impl PartialEq for TabCtx {
     fn eq(&self, other: &Self) -> bool {
+        // Later to change this to false
         self.current_dir == other.current_dir && self.current_menu == other.current_menu
     }
 }
@@ -72,7 +91,7 @@ impl TabCtx {
     pub fn default() -> Self {
         TabCtx::new(
             PitouFilePath {
-                path: std::path::PathBuf::from("C:\\Users\\nisaacdz"),
+                path: std::path::PathBuf::from("C:/Users/nisaacdz"),
             },
             AppMenu::Explorer,
         )

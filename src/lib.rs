@@ -19,6 +19,12 @@ pub struct PitouFilePath {
     pub path: PathBuf,
 }
 
+impl PitouFilePath {
+    pub fn name(&self) -> &str {
+        self.path.as_os_str().to_str().unwrap()
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct PitouDateTime {
     pub datetime: NaiveDateTime,
