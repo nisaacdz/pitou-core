@@ -27,7 +27,7 @@ pub struct ColorTheme {
 }
 
 impl ColorTheme {
-    pub const MAIN_LIGHT: Self = Self {
+    pub const DEFAULT_LIGHT: Self = Self {
         background1: Color(204, 229, 255, 255),
         background2: Color(220, 220, 220, 255),
         foreground1: Color(0, 0, 0, 255),
@@ -36,7 +36,7 @@ impl ColorTheme {
         spare2: Color(0, 128, 0, 255),
     };
 
-    pub const MAIN_DARK: Self = Self {
+    pub const DEFAULT_DARK: Self = Self {
         background1: Color(0, 0, 51, 255),
         background2: Color(25, 25, 112, 255),
         foreground1: Color(255, 255, 255, 255),
