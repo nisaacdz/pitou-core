@@ -18,7 +18,7 @@ pub struct Color(pub u8,pub u8,pub u8,pub u8);
 
 impl std::fmt::Display for Color {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!{f, "rbga({}, {}, {}, {})", self.0, self.1, self.2, self.3}
+        write!{f, "rgba({}, {}, {}, {})", self.0, self.1, self.2, self.3}
     }
 }
 
