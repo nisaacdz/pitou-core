@@ -43,8 +43,8 @@ impl ColorTheme {
     };
 
     pub const DEFAULT_DARK: Self = Self {
-        background1: Color(0, 0, 51, 255),
-        background2: Color(25, 25, 112, 255),
+        background1: Color(25, 25, 112, 255),
+        background2: Color(0, 0, 51, 255),
         foreground1: Color(255, 255, 255, 255),
         foreground2: Color(192, 192, 192, 255),
         spare1: Color(153, 50, 204, 255),
