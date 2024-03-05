@@ -8,7 +8,9 @@ pub(crate) mod msg;
 
 #[derive(Serialize, Deserialize)]
 pub enum ItemsView {
-    Grid, Rows, Tiles
+    Grid,
+    Rows,
+    Tiles,
 }
 
 #[derive(Clone, Copy, Serialize, Deserialize)]
@@ -23,6 +25,27 @@ pub struct ColorTheme {
     spare1: Color,
     spare2: Color,
 }
+
+impl ColorTheme {
+    pub const MAIN_LIGHT: Self = Self {
+        background1: Color(204, 229, 255, 255),
+        background2: Color(220, 220, 220, 255),
+        foreground1: Color(0, 0, 0, 255),
+        foreground2: Color(128, 128, 128, 255),
+        spare1: Color(255, 127, 80, 255),
+        spare2: Color(0, 128, 0, 255),
+    };
+
+    pub const MAIN_DARK: Self = Self {
+        background1: Color(0, 0, 51, 255),
+        background2: Color(25, 25, 112, 255),
+        foreground1: Color(255, 255, 255, 255),
+        foreground2: Color(192, 192, 192, 255),
+        spare1: Color(153, 50, 204, 255),
+        spare2: Color(255, 0, 0, 255),
+    };
+}
+
 pub struct TabCtx {
     pub current_dir: PitouFilePath,
     pub current_menu: AppMenu,
@@ -41,7 +64,12 @@ impl PartialEq for TabCtx {
 
 impl TabCtx {
     pub fn default() -> Self {
-        TabCtx::new(PitouFilePath { path: std::path::PathBuf::from("C:\\Users\\nisaacdz") }, AppMenu::Explorer)
+        TabCtx::new(
+            PitouFilePath {
+                path: std::path::PathBuf::from("C:\\Users\\nisaacdz"),
+            },
+            AppMenu::Explorer,
+        )
     }
     pub fn new(current_dir: PitouFilePath, current_menu: AppMenu) -> Self {
         Self {
