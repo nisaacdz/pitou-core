@@ -65,8 +65,8 @@ impl ColorTheme {
         background2: Color(105, 105, 105, 255),
         foreground1: Color(240, 240, 240, 255),
         foreground2: Color( 255, 255, 255, 255),
-        spare1: Color(65, 105, 225, 255),
-        spare2: Color(0, 128, 0, 255),
+        spare1: Color(0, 0, 0, 255),
+        spare2: Color(188, 211, 232, 255),
     };
 
     pub const OCEAN_BLUE: Self = Self {
@@ -131,7 +131,7 @@ impl Default for GenCtx {
         Self {
             app_width: 1366,
             app_height: 768,
-            color_theme: ColorTheme::OCEAN_BLUE,
+            color_theme: ColorTheme::GPT_DARK,
             app_settings: AppSettings::default(),
         }
     }
@@ -167,7 +167,9 @@ pub enum AppMenu {
     Home,
     Explorer,
     Trash,
-    Bookmarks,
+    Favorites,
+    Search,
+    Locked,
     Recents,
     Cloud,
     Settings,
