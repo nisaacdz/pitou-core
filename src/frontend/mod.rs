@@ -70,7 +70,7 @@ impl ColorTheme {
     };
 
     pub const OCEAN_BLUE: Self = Self {
-        background1: Color(100, 150, 250, 255),
+        background1: Color(100, 180, 250, 255),
         background2: Color(50, 100, 200, 255),
         foreground1: Color(255, 255, 255, 255),
         foreground2: Color(245, 225, 180, 255),
