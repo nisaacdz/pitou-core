@@ -14,11 +14,11 @@ pub enum ItemsView {
 }
 
 #[derive(Clone, Copy, Serialize, Deserialize)]
-pub struct Color(pub u8,pub u8,pub u8,pub u8);
+pub struct Color(pub u8, pub u8, pub u8, pub u8);
 
 impl std::fmt::Display for Color {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!{f, "rgba({}, {}, {}, {})", self.0, self.1, self.2, self.3}
+        write! {f, "rgba({}, {}, {}, {})", self.0, self.1, self.2, self.3}
     }
 }
 
@@ -33,13 +33,13 @@ pub struct ColorTheme {
 }
 
 impl ColorTheme {
-    pub const DEFAULT_LIGHT: Self = Self {
-        background1: Color(204, 229, 255, 255),
-        background2: Color(220, 220, 220, 255),
-        foreground1: Color(0, 0, 0, 255),
-        foreground2: Color(128, 128, 128, 255),
-        spare1: Color(255, 127, 80, 255),
-        spare2: Color(0, 128, 0, 255),
+    pub const RAMBO: Self = Self {
+        background1: Color(230, 230, 230, 255),
+        background2: Color(200, 200, 200, 255),
+        foreground1: Color(50, 50, 50, 255),
+        foreground2: Color(100, 100, 100, 255),
+        spare1: Color(215, 215, 215, 255),
+        spare2: Color(150, 150, 150, 255),
     };
 
     pub const DEFAULT_DARK: Self = Self {
@@ -51,20 +51,20 @@ impl ColorTheme {
         spare2: Color(255, 0, 0, 255),
     };
 
-    pub const GPT_LIGHT: Self = Self {
-        background1: Color(240, 240, 240, 255),
-        background2: Color( 255, 255, 255, 255),
-        foreground1: Color(80, 80, 80, 255),
-        foreground2: Color(0, 0, 0, 255),
-        spare1: Color(173, 216, 230, 255),
-        spare2: Color(144, 238, 144, 255),
+    pub const POLISH: Self = Self {
+        background1: Color(30, 30, 30, 255),
+        background2: Color(60, 60, 60, 255),
+        foreground1: Color(220, 220, 220, 255),
+        foreground2: Color(180, 180, 180, 255),
+        spare1: Color(45, 45, 45, 255),
+        spare2: Color(100, 100, 100, 255),
     };
 
     pub const GPT_DARK: Self = Self {
         background1: Color(50, 50, 50, 255),
         background2: Color(105, 105, 105, 255),
         foreground1: Color(240, 240, 240, 255),
-        foreground2: Color( 255, 255, 255, 255),
+        foreground2: Color(255, 255, 255, 255),
         spare1: Color(0, 0, 0, 255),
         spare2: Color(188, 211, 232, 255),
     };
@@ -76,6 +76,24 @@ impl ColorTheme {
         foreground2: Color(245, 225, 180, 255),
         spare1: Color(25, 50, 100, 255),
         spare2: Color(150, 15, 50, 255),
+    };
+
+    pub const GEM_LIGHT: Self = Self {
+        background1: Color(240, 240, 240, 255),
+        background2: Color(200, 200, 200, 255),
+        foreground1: Color(50, 50, 50, 255),
+        foreground2: Color(0, 128, 128, 255),
+        spare1: Color(170, 170, 170, 255),
+        spare2: Color(255, 165, 0, 255),
+    };
+
+    pub const GEM_DARK: Self = Self {
+        background1: Color(50, 50, 50, 255),
+        background2: Color(30, 30, 30, 255),
+        foreground1: Color(240, 240, 240, 255),
+        foreground2: Color(0, 255, 255, 255),
+        spare1: Color(100, 100, 100, 255),
+        spare2: Color(255, 192, 203, 255),  
     };
 }
 
@@ -105,6 +123,28 @@ impl TabCtx {
             AppMenu::Explorer,
         )
     }
+
+    #[cfg(debug_assertions)]
+    pub fn generate() -> Vec<Rc<Self>> {
+        let mut res = vec![];
+        let mut a = Self::default();
+        a.current_menu = AppMenu::Home;
+        res.push(Rc::new(a));
+        let mut b = Self::default();
+        b.current_menu = AppMenu::Settings;
+        res.push(Rc::new(b));
+        let mut c = Self::default();
+        c.current_menu = AppMenu::Trash;
+        res.push(Rc::new(c));
+        let mut d = Self::default();
+        d.current_menu = AppMenu::Favorites;
+        res.push(Rc::new(d));
+        let mut e = Self::default();
+        e.current_menu = AppMenu::Recents;
+        res.push(Rc::new(e));
+        res
+    }
+
     pub fn new(current_dir: PitouFilePath, current_menu: AppMenu) -> Self {
         Self {
             search_options: SimplifiedSearchOptions::default(current_dir.path.clone().into()),
