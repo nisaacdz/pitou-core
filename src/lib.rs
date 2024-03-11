@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 mod extra;
 
-//#[cfg(feature="backend")]
+#[cfg(feature="backend")]
 pub mod backend;
 
 
