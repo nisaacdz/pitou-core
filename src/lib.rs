@@ -2,11 +2,10 @@ use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 mod extra;
-#[cfg(feature = "backend")]
-pub mod fs_ops;
 
-#[cfg(feature = "backend")]
-mod data;
+//#[cfg(feature="backend")]
+pub mod backend;
+
 
 pub mod search;
 
@@ -22,6 +21,10 @@ pub struct PitouFilePath {
 impl PitouFilePath {
     pub fn name(&self) -> &str {
         self.path.as_os_str().to_str().unwrap()
+    }
+
+    pub fn from_pathbuf(pathbuf: PathBuf) -> Self {
+        Self { path: pathbuf }
     }
 }
 
@@ -80,6 +83,25 @@ impl PitouFileMetadata {
     fn attempt(path: &PathBuf) -> Option<Self> {
         std::fs::metadata(path).map(|v| v.into()).ok()
     }
+}
+
+
+#[derive(Serialize, Deserialize, PartialEq)]
+pub struct PitouDrive {
+    pub name: String,
+    pub mount_point: PitouFilePath,
+    pub total_space: u64,
+    pub free_space: u64,
+    pub is_removable: bool,
+    pub kind: PitouDriveKind,
+}
+
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+pub enum PitouDriveKind {
+    HDD,
+    SSD,
+    Unknown,
 }
 
 #[derive(Serialize, Deserialize)]

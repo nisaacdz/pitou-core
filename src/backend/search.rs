@@ -2,7 +2,7 @@ use std::{path::PathBuf, sync::Arc};
 
 use crate::PitouFile;
 
-use super::{SearchFilter, SearchOptions, SearchType};
+use crate::search::{SearchFilter, SearchOptions, SearchType};
 
 pub mod stream {
     use std::{collections::LinkedList, sync::OnceLock};

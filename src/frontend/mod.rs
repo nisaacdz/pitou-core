@@ -124,8 +124,12 @@ impl TabCtx {
         )
     }
 
+    pub fn new_with(current_dir: PitouFilePath) -> Self {
+        Self::new(current_dir, AppMenu::Home)
+    }
+
     #[cfg(debug_assertions)]
-    pub fn generate() -> Vec<Rc<Self>> {
+    pub fn generate() -> Rc<RefCell<Vec<Rc<Self>>>> {
         let mut res = vec![];
         let mut a = Self::default();
         a.current_menu = AppMenu::Home;
@@ -142,12 +146,24 @@ impl TabCtx {
         let mut e = Self::default();
         e.current_menu = AppMenu::Recents;
         res.push(Rc::new(e));
-        res
+        Rc::new(RefCell::new(res))
     }
 
-    pub fn new(current_dir: PitouFilePath, current_menu: AppMenu) -> Self {
+    fn new(current_dir: PitouFilePath, current_menu: AppMenu) -> Self {
         Self {
             search_options: SimplifiedSearchOptions::default(current_dir.path.clone().into()),
+            current_dir,
+            current_menu,
+            selected_files: Rc::new(RefCell::new(HashSet::new())),
+            search_results: None,
+            dir_children: None,
+            dir_siblings: None,
+        }
+    }
+
+    pub(crate) fn dms(current_dir: PitouFilePath, current_menu: AppMenu, search_options: SimplifiedSearchOptions) -> Self {
+        Self {
+            search_options,
             current_dir,
             current_menu,
             selected_files: Rc::new(RefCell::new(HashSet::new())),

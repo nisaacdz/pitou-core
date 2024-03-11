@@ -1,6 +1,9 @@
 use std::path::PathBuf;
 
 use crate::{PitouFile, PitouFilePath};
+mod drive;
+pub use drive::*;
+use serde::{Deserialize, Serialize};
 
 pub mod clipboard {
     use std::sync::{Arc, OnceLock};
@@ -90,26 +93,47 @@ pub async fn read_link(link: PitouFilePath) -> Option<crate::PitouFile> {
         .map(|path| PitouFile::from_pathbuf(path)).ok()
 }
 
-pub fn downloads_folder() -> PathBuf {
-    dirs::download_dir().unwrap()
+fn downloads_folder() -> PitouFilePath {
+    PitouFilePath::from_pathbuf(dirs::download_dir().unwrap())
 }
 
-pub fn desktop_folder() -> PathBuf {
-    dirs::desktop_dir().unwrap()
+fn desktop_folder() -> PitouFilePath {
+    PitouFilePath::from_pathbuf(dirs::desktop_dir().unwrap())
 }
 
-pub fn videos_folder() -> PathBuf {
-    dirs::video_dir().unwrap()
+fn videos_folder() -> PitouFilePath {
+    PitouFilePath::from_pathbuf(dirs::video_dir().unwrap())
 }
 
-pub fn pictures_folder() -> PathBuf {
-    dirs::picture_dir().unwrap()
+fn pictures_folder() -> PitouFilePath {
+    PitouFilePath::from_pathbuf(dirs::picture_dir().unwrap())
 }
 
-pub fn audios_folder() -> PathBuf {
-    dirs::audio_dir().unwrap()
+fn audios_folder() -> PitouFilePath {
+    PitouFilePath::from_pathbuf(dirs::audio_dir().unwrap())
 }
 
-pub fn documents_folder() -> PathBuf {
-    dirs::document_dir().unwrap()
+fn documents_folder() -> PitouFilePath {
+    PitouFilePath::from_pathbuf(dirs::document_dir().unwrap())
+}
+
+#[derive(Serialize, Deserialize)]
+pub enum GeneralFolders {
+    DocumentsFolder(PitouFilePath),
+    AudiosFolder(PitouFilePath),
+    PicturesFolder(PitouFilePath),
+    VideosFolder(PitouFilePath),
+    DesktopFolder(PitouFilePath),
+    DownloadsFolder(PitouFilePath),
+}
+
+pub fn general_folders() -> Vec<GeneralFolders> {
+    vec![
+        GeneralFolders::DesktopFolder(desktop_folder()),
+        GeneralFolders::DownloadsFolder(downloads_folder()),
+        GeneralFolders::AudiosFolder(audios_folder()),
+        GeneralFolders::VideosFolder(videos_folder()),
+        GeneralFolders::PicturesFolder(pictures_folder()),
+        GeneralFolders::DocumentsFolder(documents_folder())
+    ]
 }

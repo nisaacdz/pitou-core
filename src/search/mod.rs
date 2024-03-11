@@ -2,8 +2,6 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 
 use crate::PitouFilePath;
-#[cfg(feature = "backend")]
-pub mod ops;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub(crate) enum SearchType {
@@ -15,7 +13,7 @@ pub(crate) enum SearchType {
 }
 
 impl SearchType {
-    fn matches(&self, input: &str, sensitive: bool) -> bool {
+    pub(crate) fn matches(&self, input: &str, sensitive: bool) -> bool {
         match self {
             Self::Regex(pattern) => pattern.is_match(input),
             Self::MatchBegining(key) => {
