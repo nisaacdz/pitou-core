@@ -79,14 +79,14 @@ impl PitouFileFilter {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(PartialEq, Serialize, Deserialize)]
 pub enum ItemsView {
     Grid,
     Rows,
     Tiles,
 }
 
-#[derive(Clone, Copy, Serialize, Deserialize)]
+#[derive(PartialEq, Clone, Copy, Serialize, Deserialize)]
 pub struct Color(pub u8, pub u8, pub u8, pub u8);
 
 impl std::fmt::Display for Color {
@@ -95,7 +95,7 @@ impl std::fmt::Display for Color {
     }
 }
 
-#[derive(Clone, Copy, Serialize, Deserialize)]
+#[derive(PartialEq, Clone, Copy, Serialize, Deserialize)]
 pub struct ColorTheme {
     pub background1: Color,
     pub background2: Color,
@@ -251,7 +251,7 @@ impl TabCtx {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(PartialEq, Serialize, Deserialize)]
 pub struct GenCtx {
     pub app_width: i32,
     pub app_height: i32,
@@ -270,7 +270,7 @@ impl Default for GenCtx {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(PartialEq, Serialize, Deserialize)]
 pub struct AppSettings {
     pub refresh_rate: u8,
     pub show_extensions: bool,
@@ -363,8 +363,8 @@ impl std::fmt::Display for Rectangle {
     }
 }
 
-#[derive(Serialize, Deserialize)]
-pub enum GeneralFolders {
+#[derive(PartialEq, Serialize, Deserialize)]
+pub enum GeneralFolder {
     DocumentsFolder(PitouFilePath),
     AudiosFolder(PitouFilePath),
     PicturesFolder(PitouFilePath),
@@ -373,15 +373,15 @@ pub enum GeneralFolders {
     DownloadsFolder(PitouFilePath),
 }
 
-impl GeneralFolders {
+impl GeneralFolder {
     pub fn name(&self) -> String {
         match self {
-            GeneralFolders::DocumentsFolder(_) => String::from("Documents"),
-            GeneralFolders::AudiosFolder(_) => String::from("Audios"),
-            GeneralFolders::PicturesFolder(_) => String::from("pictures"),
-            GeneralFolders::VideosFolder(_) => String::from("Videos"),
-            GeneralFolders::DesktopFolder(_) => String::from("Desktop"),
-            GeneralFolders::DownloadsFolder(_) => String::from("Downloads"),
+            GeneralFolder::DocumentsFolder(_) => String::from("Documents"),
+            GeneralFolder::AudiosFolder(_) => String::from("Audios"),
+            GeneralFolder::PicturesFolder(_) => String::from("pictures"),
+            GeneralFolder::VideosFolder(_) => String::from("Videos"),
+            GeneralFolder::DesktopFolder(_) => String::from("Desktop"),
+            GeneralFolder::DownloadsFolder(_) => String::from("Downloads"),
         }
     }
 }

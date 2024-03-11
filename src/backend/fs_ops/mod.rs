@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use crate::{
-    frontend::{GeneralFolders, PitouFileFilter, PitouFileSort},
+    frontend::{GeneralFolder, PitouFileFilter, PitouFileSort},
     PitouDrive, PitouFile, PitouFilePath,
 };
 pub mod drive;
@@ -175,13 +175,13 @@ fn documents_folder() -> PitouFilePath {
     PitouFilePath::from_pathbuf(dirs::document_dir().unwrap())
 }
 
-pub fn general_folders() -> Vec<GeneralFolders> {
+pub fn general_folders() -> Vec<GeneralFolder> {
     vec![
-        GeneralFolders::DesktopFolder(desktop_folder()),
-        GeneralFolders::DownloadsFolder(downloads_folder()),
-        GeneralFolders::AudiosFolder(audios_folder()),
-        GeneralFolders::VideosFolder(videos_folder()),
-        GeneralFolders::PicturesFolder(pictures_folder()),
-        GeneralFolders::DocumentsFolder(documents_folder()),
+        GeneralFolder::DesktopFolder(desktop_folder()),
+        GeneralFolder::DownloadsFolder(downloads_folder()),
+        GeneralFolder::AudiosFolder(audios_folder()),
+        GeneralFolder::VideosFolder(videos_folder()),
+        GeneralFolder::PicturesFolder(pictures_folder()),
+        GeneralFolder::DocumentsFolder(documents_folder()),
     ]
 }
