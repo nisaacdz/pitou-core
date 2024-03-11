@@ -1,8 +1,5 @@
 use std::{path::PathBuf, sync::Arc};
-
-use crate::PitouFile;
-
-use crate::search::{SearchFilter, SearchOptions, SearchType};
+use crate::{PitouFile, search::{SearchOptions, SearchType}, frontend::PitouFileFilter};
 
 pub mod stream {
     use std::{collections::LinkedList, sync::OnceLock};
@@ -68,7 +65,7 @@ pub mod stream {
 #[allow(unused)]
 #[derive(Clone)]
 struct SearchVariables {
-    filter: SearchFilter,
+    filter: PitouFileFilter,
     case_sensitive: bool,
     depth: u8,
     search_type: Arc<SearchType>,

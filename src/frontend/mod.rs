@@ -4,7 +4,80 @@ use serde::{Deserialize, Serialize};
 
 use crate::{search::SimplifiedSearchOptions, PitouFile, PitouFilePath};
 
-pub(crate) mod msg;
+pub mod msg;
+
+#[derive(Clone, Copy, Serialize, Deserialize)]
+pub enum PitouFileSortOrder {
+    Increasing,
+    Decreasing,
+}
+
+#[derive(Clone, Copy, Serialize, Deserialize)]
+pub enum PitouFileSort {
+    DateCreated(PitouFileSortOrder),
+    Name(PitouFileSortOrder),
+    DateModified(PitouFileSortOrder),
+    DateAccessed(PitouFileSortOrder),
+}
+
+impl PitouFileSort {
+    pub fn sorted(self, items: Vec<PitouFile>) -> Vec<PitouFile> {
+        //TODO must implement a sorting for items
+        items
+    }
+}
+
+#[derive(Clone, Copy, Serialize, Deserialize)]
+pub struct PitouFileFilter {
+    pub files: bool,
+    pub links: bool,
+    pub dirs: bool,
+}
+
+impl PitouFileFilter {
+    pub fn new() -> Self {
+        Self {
+            files: true,
+            links: false,
+            dirs: true,
+        }
+    }
+
+    pub fn include_all() -> Self {
+        Self {
+            files: true,
+            links: true,
+            dirs: true,
+        }
+    }
+
+    pub fn map(self, file: PitouFile) -> Option<PitouFile> {
+        if (file.is_dir() && self.include_dirs())
+            || (file.is_file() && self.include_files())
+            || (file.is_link() && self.include_links())
+        {
+            Some(file)
+        } else {
+            None
+        }
+    }
+
+    pub fn all_filtered(self) -> bool {
+        !self.dirs && !self.files && !self.links
+    }
+
+    pub fn include_dirs(self) -> bool {
+        self.dirs
+    }
+
+    pub fn include_files(self) -> bool {
+        self.files
+    }
+
+    pub fn include_links(self) -> bool {
+        self.links
+    }
+}
 
 #[derive(Serialize, Deserialize)]
 pub enum ItemsView {
@@ -93,7 +166,7 @@ impl ColorTheme {
         foreground1: Color(240, 240, 240, 255),
         foreground2: Color(0, 255, 255, 255),
         spare1: Color(100, 100, 100, 255),
-        spare2: Color(255, 192, 203, 255),  
+        spare2: Color(255, 192, 203, 255),
     };
 }
 
@@ -161,7 +234,11 @@ impl TabCtx {
         }
     }
 
-    pub(crate) fn dms(current_dir: PitouFilePath, current_menu: AppMenu, search_options: SimplifiedSearchOptions) -> Self {
+    pub(crate) fn dms(
+        current_dir: PitouFilePath,
+        current_menu: AppMenu,
+        search_options: SimplifiedSearchOptions,
+    ) -> Self {
         Self {
             search_options,
             current_dir,

@@ -1,8 +1,7 @@
 use std::path::PathBuf;
 
-use crate::{PitouFile, PitouFilePath};
-mod drive;
-pub use drive::*;
+use crate::{frontend::{PitouFileFilter, PitouFileSort}, PitouDrive, PitouFile, PitouFilePath};
+pub mod drive;
 use serde::{Deserialize, Serialize};
 
 pub mod clipboard {
@@ -91,6 +90,43 @@ pub async fn read_link(link: PitouFilePath) -> Option<crate::PitouFile> {
     tokio::fs::read_link(&link.path)
         .await
         .map(|path| PitouFile::from_pathbuf(path)).ok()
+}
+
+pub async fn children(dir: PitouFilePath, filter: PitouFileFilter, sort: Option<PitouFileSort>) -> std::io::Result<Vec<PitouFile>> {
+    if dir.path.as_os_str().len() == 0 {
+        let items = PitouDrive::get_drives()
+        .into_iter()
+        .filter_map(|drive| filter.map(PitouFile::from_pathbuf(drive.mount_point.path)))
+        .collect::<Vec<_>>();
+        return if let Some(sort) = sort {
+            Ok(sort.sorted(items))
+        } else {
+            Ok(items)
+        }
+    }
+
+    let mut read_dir = tokio::fs::read_dir(&dir.path).await?;
+    let mut res = Vec::new();
+    while let Some(entry) = read_dir.next_entry().await? {
+        let file = PitouFile::from_pathbuf(entry.path());
+        if let Some(file) = filter.map(file) {
+            res.push(file);
+        }
+    }
+    return if let Some(sort) = sort {
+        Ok(sort.sorted(res))
+    } else {
+        Ok(res)
+    }
+}
+
+pub async fn siblings(mut dir: PitouFilePath, filter: PitouFileFilter, sort: Option<PitouFileSort>) -> std::io::Result<Vec<PitouFile>> {
+    dir.path.pop();
+    children(dir, filter, sort).await
+}
+
+pub fn default_folder() -> PitouFilePath {
+    PitouFilePath::from_pathbuf(dirs::home_dir().unwrap())
 }
 
 fn downloads_folder() -> PitouFilePath {

@@ -1,7 +1,7 @@
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
-use crate::PitouFilePath;
+use crate::{frontend::PitouFileFilter, PitouFilePath};
 
 #[derive(Clone, Serialize, Deserialize)]
 pub(crate) enum SearchType {
@@ -99,46 +99,6 @@ fn test_ignore_case_functions() {
     let key = "CvbnM<>?";
     assert!(SearchType::ends_with_ignore_case(key, input))
 }
-#[derive(Clone, Copy, Serialize, Deserialize)]
-pub(crate) struct SearchFilter {
-    files: bool,
-    links: bool,
-    dirs: bool,
-}
-
-impl SearchFilter {
-    pub fn new() -> Self {
-        Self {
-            files: true,
-            links: false,
-            dirs: true,
-        }
-    }
-
-    pub fn include_all() -> Self {
-        Self {
-            files: true,
-            links: true,
-            dirs: true,
-        }
-    }
-
-    pub fn all_filtered(self) -> bool {
-        !self.dirs && !self.files && !self.links
-    }
-
-    pub fn include_dirs(self) -> bool {
-        self.dirs
-    }
-
-    pub fn include_files(self) -> bool {
-        self.files
-    }
-
-    pub fn include_links(self) -> bool {
-        self.links
-    }
-}
 
 #[derive(Serialize, Deserialize)]
 pub struct SimplifiedSearchOptions {
@@ -149,7 +109,7 @@ pub struct SimplifiedSearchOptions {
     case_sensitive: bool,
     hardware_accelerate: bool,
     skip_errors: bool,
-    filter: SearchFilter,
+    filter: PitouFileFilter,
     max_finds: usize,
 }
 
@@ -163,7 +123,7 @@ impl SimplifiedSearchOptions {
             case_sensitive: true,
             hardware_accelerate: false,
             skip_errors: true,
-            filter: SearchFilter::include_all(),
+            filter: PitouFileFilter::include_all(),
             max_finds: 250,
         }
     }
@@ -191,7 +151,7 @@ impl SimplifiedSearchOptions {
 pub struct SearchOptions {
     pub(crate) search_dir: PitouFilePath,
     pub(crate) hardware_accelerate: bool,
-    pub(crate) filter: SearchFilter,
+    pub(crate) filter: PitouFileFilter,
     pub(crate) case_sensitive: bool,
     pub(crate) depth: u8,
     pub(crate) search_type: SearchType,
@@ -203,7 +163,7 @@ impl SearchOptions {
     pub fn new(search_dir: PitouFilePath, key: String) -> Self {
         Self {
             search_dir,
-            filter: SearchFilter::new(),
+            filter: PitouFileFilter::new(),
             hardware_accelerate: false,
             case_sensitive: true,
             depth: 6,
