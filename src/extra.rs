@@ -1,11 +1,17 @@
-use std::{fs::{FileType, Metadata}, path::PathBuf, time::SystemTime};
+use std::{
+    fs::{FileType, Metadata},
+    path::PathBuf,
+    time::SystemTime,
+};
 
 use chrono::NaiveDateTime;
 
-use crate::{PitouDateTime, PitouFile, PitouFileKind, PitouFileMetadata, PitouFilePath, PitouFileSize};
+use crate::{
+    PitouDateTime, PitouFile, PitouFileKind, PitouFileMetadata, PitouFilePath, PitouFileSize,
+};
 
 impl From<u64> for PitouFileSize {
-    fn from(bytes : u64) -> Self {
+    fn from(bytes: u64) -> Self {
         Self { bytes }
     }
 }
@@ -30,7 +36,10 @@ impl From<FileType> for PitouFileKind {
 
 impl From<SystemTime> for PitouDateTime {
     fn from(value: SystemTime) -> Self {
-        let millis_epoch = value.duration_since(std::time::UNIX_EPOCH).unwrap().as_millis()as i64;
+        let millis_epoch = value
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as i64;
         Self {
             datetime: NaiveDateTime::from_timestamp_millis(millis_epoch).unwrap(),
         }

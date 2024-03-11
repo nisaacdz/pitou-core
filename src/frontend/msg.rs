@@ -1,6 +1,6 @@
-use serde::{Serialize, Deserialize};
-use std::collections::LinkedList;
 use crate::PitouFile;
+use serde::{Deserialize, Serialize};
+use std::collections::LinkedList;
 
 #[derive(Serialize, Deserialize)]
 pub enum SearchMsg {

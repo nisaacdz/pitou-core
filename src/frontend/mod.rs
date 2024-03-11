@@ -362,3 +362,26 @@ impl std::fmt::Display for Rectangle {
         write!(f, "width: {}px;\nheight: {}px;", self.width, self.height)
     }
 }
+
+#[derive(Serialize, Deserialize)]
+pub enum GeneralFolders {
+    DocumentsFolder(PitouFilePath),
+    AudiosFolder(PitouFilePath),
+    PicturesFolder(PitouFilePath),
+    VideosFolder(PitouFilePath),
+    DesktopFolder(PitouFilePath),
+    DownloadsFolder(PitouFilePath),
+}
+
+impl GeneralFolders {
+    pub fn name(&self) -> String {
+        match self {
+            GeneralFolders::DocumentsFolder(_) => String::from("Documents"),
+            GeneralFolders::AudiosFolder(_) => String::from("Audios"),
+            GeneralFolders::PicturesFolder(_) => String::from("pictures"),
+            GeneralFolders::VideosFolder(_) => String::from("Videos"),
+            GeneralFolders::DesktopFolder(_) => String::from("Desktop"),
+            GeneralFolders::DownloadsFolder(_) => String::from("Downloads"),
+        }
+    }
+}

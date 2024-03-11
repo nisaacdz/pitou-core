@@ -4,7 +4,10 @@ use sysinfo::{Disk, DiskKind, Disks};
 
 impl PitouDrive {
     pub fn get_drives() -> Vec<Self> {
-        Disks::new_with_refreshed_list().into_iter().map(|d| Self::to_drive(d)).collect()
+        Disks::new_with_refreshed_list()
+            .into_iter()
+            .map(|d| Self::to_drive(d))
+            .collect()
     }
 
     fn to_drive(disk: &Disk) -> Self {
@@ -17,7 +20,11 @@ impl PitouDrive {
             DiskKind::SSD => PitouDriveKind::SSD,
             DiskKind::Unknown(_) => PitouDriveKind::Unknown,
         };
-        let name = disk.name().to_str().map(|v| v.to_owned()).unwrap_or_default();
+        let name = disk
+            .name()
+            .to_str()
+            .map(|v| v.to_owned())
+            .unwrap_or_default();
 
         PitouDrive {
             mount_point,

@@ -3,9 +3,8 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 mod extra;
 
-#[cfg(feature="backend")]
+#[cfg(feature = "backend")]
 pub mod backend;
-
 
 pub mod search;
 
@@ -85,7 +84,6 @@ impl PitouFileMetadata {
     }
 }
 
-
 #[derive(Serialize, Deserialize, PartialEq)]
 pub struct PitouDrive {
     pub name: String,
@@ -95,7 +93,6 @@ pub struct PitouDrive {
     pub is_removable: bool,
     pub kind: PitouDriveKind,
 }
-
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 pub enum PitouDriveKind {

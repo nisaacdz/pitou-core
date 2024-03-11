@@ -1,6 +1,9 @@
 use std::path::PathBuf;
 
-use crate::{frontend::{PitouFileFilter, PitouFileSort}, PitouDrive, PitouFile, PitouFilePath};
+use crate::{
+    frontend::{GeneralFolders, PitouFileFilter, PitouFileSort},
+    PitouDrive, PitouFile, PitouFilePath,
+};
 pub mod drive;
 use serde::{Deserialize, Serialize};
 
@@ -11,7 +14,7 @@ pub mod clipboard {
 
     enum ClipboardItem {
         Copied(Arc<Vec<PitouFile>>),
-        Cut(Arc<Vec<PitouFile>>)
+        Cut(Arc<Vec<PitouFile>>),
     }
 
     use crate::PitouFile;
@@ -24,13 +27,19 @@ pub mod clipboard {
     }
 
     pub async fn copy(files: Vec<PitouFile>) {
-        get_clipboard().lock().await.push(ClipboardItem::Copied(Arc::new(files)))
+        get_clipboard()
+            .lock()
+            .await
+            .push(ClipboardItem::Copied(Arc::new(files)))
     }
 
     pub async fn cut(files: Vec<PitouFile>) {
-        get_clipboard().lock().await.push(ClipboardItem::Cut(Arc::new(files)))
+        get_clipboard()
+            .lock()
+            .await
+            .push(ClipboardItem::Cut(Arc::new(files)))
     }
-    
+
     pub async fn remove_from_clipboard(idx: usize) {
         get_clipboard().lock().await.remove(idx);
     }
@@ -51,7 +60,7 @@ pub mod clipboard {
                 ClipboardItem::Copied(vals) => vals,
                 ClipboardItem::Cut(vals) => vals,
             },
-            None => return None
+            None => return None,
         };
         guard.push(ClipboardItem::Copied(items.clone()));
         std::mem::drop(guard);
@@ -79,30 +88,39 @@ pub async fn rename(file: PitouFilePath, newname: String) {
 }
 
 pub async fn create_file(file: PitouFilePath) {
-    tokio::fs::File::create(&file.path).await.expect("couldn't create file");
+    tokio::fs::File::create(&file.path)
+        .await
+        .expect("couldn't create file");
 }
 
 pub async fn create_dir(dir: PitouFilePath) {
-    tokio::fs::create_dir(&dir.path).await.expect("couldn't create dir");
+    tokio::fs::create_dir(&dir.path)
+        .await
+        .expect("couldn't create dir");
 }
 
 pub async fn read_link(link: PitouFilePath) -> Option<crate::PitouFile> {
     tokio::fs::read_link(&link.path)
         .await
-        .map(|path| PitouFile::from_pathbuf(path)).ok()
+        .map(|path| PitouFile::from_pathbuf(path))
+        .ok()
 }
 
-pub async fn children(dir: PitouFilePath, filter: PitouFileFilter, sort: Option<PitouFileSort>) -> std::io::Result<Vec<PitouFile>> {
+pub async fn children(
+    dir: PitouFilePath,
+    filter: PitouFileFilter,
+    sort: Option<PitouFileSort>,
+) -> std::io::Result<Vec<PitouFile>> {
     if dir.path.as_os_str().len() == 0 {
         let items = PitouDrive::get_drives()
-        .into_iter()
-        .filter_map(|drive| filter.map(PitouFile::from_pathbuf(drive.mount_point.path)))
-        .collect::<Vec<_>>();
+            .into_iter()
+            .filter_map(|drive| filter.map(PitouFile::from_pathbuf(drive.mount_point.path)))
+            .collect::<Vec<_>>();
         return if let Some(sort) = sort {
             Ok(sort.sorted(items))
         } else {
             Ok(items)
-        }
+        };
     }
 
     let mut read_dir = tokio::fs::read_dir(&dir.path).await?;
@@ -117,10 +135,14 @@ pub async fn children(dir: PitouFilePath, filter: PitouFileFilter, sort: Option<
         Ok(sort.sorted(res))
     } else {
         Ok(res)
-    }
+    };
 }
 
-pub async fn siblings(mut dir: PitouFilePath, filter: PitouFileFilter, sort: Option<PitouFileSort>) -> std::io::Result<Vec<PitouFile>> {
+pub async fn siblings(
+    mut dir: PitouFilePath,
+    filter: PitouFileFilter,
+    sort: Option<PitouFileSort>,
+) -> std::io::Result<Vec<PitouFile>> {
     dir.path.pop();
     children(dir, filter, sort).await
 }
@@ -153,16 +175,6 @@ fn documents_folder() -> PitouFilePath {
     PitouFilePath::from_pathbuf(dirs::document_dir().unwrap())
 }
 
-#[derive(Serialize, Deserialize)]
-pub enum GeneralFolders {
-    DocumentsFolder(PitouFilePath),
-    AudiosFolder(PitouFilePath),
-    PicturesFolder(PitouFilePath),
-    VideosFolder(PitouFilePath),
-    DesktopFolder(PitouFilePath),
-    DownloadsFolder(PitouFilePath),
-}
-
 pub fn general_folders() -> Vec<GeneralFolders> {
     vec![
         GeneralFolders::DesktopFolder(desktop_folder()),
@@ -170,6 +182,6 @@ pub fn general_folders() -> Vec<GeneralFolders> {
         GeneralFolders::AudiosFolder(audios_folder()),
         GeneralFolders::VideosFolder(videos_folder()),
         GeneralFolders::PicturesFolder(pictures_folder()),
-        GeneralFolders::DocumentsFolder(documents_folder())
+        GeneralFolders::DocumentsFolder(documents_folder()),
     ]
 }
