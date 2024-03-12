@@ -1,6 +1,6 @@
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::{ffi::OsString, path::PathBuf};
 mod extra;
 
 #[cfg(feature = "backend")]
@@ -142,14 +142,20 @@ impl PitouFile {
     }
 }
 
-#[test]
-fn test_serialization_n_deserialization() {
-    let path = PitouFilePath {
-        path: PathBuf::from("D:/workspace/pitou"),
-    };
-    println!("original path: {}", path.path.display());
-    let serialized_str = serde_json::to_string(&path).unwrap();
-    println!("json form : {}", serialized_str);
-    let path = serde_json::from_str::<PitouFilePath>(&serialized_str).unwrap();
-    println!("deserialized path: {}", path.path.display());
+#[derive(Serialize, Deserialize)]
+pub struct PitouTrashItem {
+    pub original_path: PitouFilePath,
+    pub metadata: PitouTrashItemMetadata,
+}
+
+impl PitouTrashItem {
+    pub fn name(&self) -> &str {
+        self.original_path.name()
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct PitouTrashItemMetadata {
+    pub id: OsString,
+    pub deleted: PitouDateTime,
 }

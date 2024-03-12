@@ -2,8 +2,11 @@ use std::path::PathBuf;
 
 use crate::{
     frontend::{GeneralFolder, PitouFileFilter, PitouFileSort},
-    PitouDrive, PitouFile, PitouFilePath,
+    PitouDateTime, PitouDrive, PitouFile, PitouFilePath, PitouTrashItem, PitouTrashItemMetadata,
 };
+use chrono::NaiveDateTime;
+use trash::TrashItem;
+
 pub mod drive;
 
 pub mod clipboard {
@@ -183,4 +186,42 @@ pub fn general_folders() -> Vec<GeneralFolder> {
         GeneralFolder::PicturesFolder(pictures_folder()),
         GeneralFolder::DocumentsFolder(documents_folder()),
     ]
+}
+
+pub fn trash_items() -> Option<Vec<PitouTrashItem>> {
+    trash::os_limited::list()
+        .map(|v| v.into_iter().map(|u| u.into()).collect())
+        .ok()
+}
+
+pub fn restore_trash(_items: impl Iterator<Item = PitouTrashItemMetadata>) {
+    todo!()
+}
+
+pub fn purge_trash(_items: impl Iterator<Item = PitouTrashItemMetadata>) {
+    todo!()
+}
+
+impl From<TrashItem> for PitouTrashItem {
+    fn from(
+        TrashItem {
+            id,
+            name,
+            mut original_parent,
+            time_deleted,
+        }: TrashItem,
+    ) -> Self {
+        original_parent.push(name);
+        let metadata = PitouTrashItemMetadata {
+            id,
+            deleted: PitouDateTime {
+                datetime: NaiveDateTime::from_timestamp_millis(1000 * time_deleted).unwrap(),
+            },
+        };
+
+        PitouTrashItem {
+            original_path: PitouFilePath::from_pathbuf(original_parent),
+            metadata,
+        }
+    }
 }
