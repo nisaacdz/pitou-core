@@ -1,9 +1,8 @@
-use serde::{de::{SeqAccess, Visitor}, ser::SerializeStruct, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{ser::SerializeStruct, Deserialize, Deserializer, Serialize, Serializer};
 use std::path::{self, PathBuf};
 
 use crate::{
     frontend::{AppMenu, TabCtx},
-    search::SimplifiedSearchOptions,
     PitouFile, PitouFilePath, PitouFileSize,
 };
 

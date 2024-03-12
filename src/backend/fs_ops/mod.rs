@@ -5,7 +5,6 @@ use crate::{
     PitouDrive, PitouFile, PitouFilePath,
 };
 pub mod drive;
-use serde::{Deserialize, Serialize};
 
 pub mod clipboard {
     use std::sync::{Arc, OnceLock};

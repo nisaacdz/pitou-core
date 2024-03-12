@@ -13,74 +13,6 @@ pub(crate) enum SearchType {
 }
 
 impl SearchType {
-    pub(crate) fn matches(&self, input: &str, sensitive: bool) -> bool {
-        match self {
-            Self::Regex(pattern) => pattern.is_match(input),
-            Self::MatchBegining(key) => {
-                if sensitive {
-                    input.starts_with(key)
-                } else {
-                    Self::starts_with_ignore_case(key, input)
-                }
-            }
-            Self::MatchMiddle(key) => {
-                if sensitive {
-                    input.contains(key)
-                } else {
-                    Self::contains_ignore_case(key, input)
-                }
-            }
-            Self::MatchEnding(key) => {
-                if sensitive {
-                    input.ends_with(key)
-                } else {
-                    Self::ends_with_ignore_case(key, input)
-                }
-            }
-        }
-    }
-
-    fn starts_with_ignore_case(key: &str, input: &str) -> bool {
-        if input.len() < key.len() {
-            return false;
-        }
-        (0..key.len()).all(|i| {
-            let (v, u) = (key.as_bytes()[i], input.as_bytes()[i]);
-            let fc = if v > 96 && v < 123 { v - 32 } else { v };
-            let sc = if u > 96 && u < 123 { u - 32 } else { u };
-            fc == sc
-        })
-    }
-
-    fn ends_with_ignore_case(key: &str, input: &str) -> bool {
-        if input.len() < key.len() {
-            return false;
-        }
-        (0..key.len()).all(|i| {
-            let (v, u) = (
-                key.as_bytes()[key.len() - i - 1],
-                input.as_bytes()[input.len() - i - 1],
-            );
-            let fc = if v > 96 && v < 123 { v - 32 } else { v };
-            let sc = if u > 96 && u < 123 { u - 32 } else { u };
-            fc == sc
-        })
-    }
-
-    fn contains_ignore_case(key: &str, input: &str) -> bool {
-        if input.len() < key.len() {
-            return false;
-        }
-        (0..=(input.len() - key.len())).any(|b| {
-            (0..key.len()).all(|i| {
-                let (v, u) = (key.as_bytes()[i], input.as_bytes()[b + i]);
-                let fc = if v > 96 && v < 123 { v - 32 } else { v };
-                let sc = if u > 96 && u < 123 { u - 32 } else { u };
-                fc == sc
-            })
-        })
-    }
-
     fn parse_regex(search_kind: u8, search_key: String) -> Option<Self> {
         match search_kind {
             0 => Some(SearchType::MatchBegining(search_key)),
@@ -91,13 +23,6 @@ impl SearchType {
                 .ok(),
         }
     }
-}
-
-#[test]
-fn test_ignore_case_functions() {
-    let input = "zXcVbNm<>?";
-    let key = "CvbnM<>?";
-    assert!(SearchType::ends_with_ignore_case(key, input))
 }
 
 #[derive(Serialize, Deserialize)]

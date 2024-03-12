@@ -19,7 +19,10 @@ pub struct PitouFilePath {
 
 impl PitouFilePath {
     pub fn name(&self) -> &str {
-        self.path.file_name().map(|v| v.to_str().unwrap()).unwrap_or_default()
+        self.path
+            .file_name()
+            .map(|v| v.to_str().unwrap())
+            .unwrap_or_default()
     }
 
     pub fn from_pathbuf(pathbuf: PathBuf) -> Self {

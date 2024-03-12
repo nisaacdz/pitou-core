@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::HashSet, rc::Rc};
+use std::{cell::RefCell, cmp::Reverse, collections::HashSet, rc::Rc};
 
 use serde::{Deserialize, Serialize};
 
@@ -21,8 +21,41 @@ pub enum PitouFileSort {
 }
 
 impl PitouFileSort {
-    pub fn sorted(self, items: Vec<PitouFile>) -> Vec<PitouFile> {
-        //TODO must implement a sorting for items
+    pub fn sorted(self, mut items: Vec<PitouFile>) -> Vec<PitouFile> {
+        match self {
+            PitouFileSort::DateCreated(order) => match order {
+                PitouFileSortOrder::Increasing => {
+                    items.sort_unstable_by_key(|v| v.metadata.as_ref().map(|m| m.created.datetime))
+                }
+                PitouFileSortOrder::Decreasing => items.sort_unstable_by_key(|v| {
+                    v.metadata.as_ref().map(|m| Reverse(m.created.datetime))
+                }),
+            },
+            PitouFileSort::Name(order) => match order {
+                PitouFileSortOrder::Increasing => {
+                    items.sort_unstable_by(|a, b| a.name().cmp(&b.name()))
+                }
+                PitouFileSortOrder::Decreasing => {
+                    items.sort_unstable_by(|a, b| b.name().cmp(&a.name()))
+                }
+            },
+            PitouFileSort::DateModified(order) => match order {
+                PitouFileSortOrder::Increasing => {
+                    items.sort_unstable_by_key(|v| v.metadata.as_ref().map(|m| m.modified.datetime))
+                }
+                PitouFileSortOrder::Decreasing => items.sort_unstable_by_key(|v| {
+                    v.metadata.as_ref().map(|m| Reverse(m.modified.datetime))
+                }),
+            },
+            PitouFileSort::DateAccessed(order) => match order {
+                PitouFileSortOrder::Increasing => {
+                    items.sort_unstable_by_key(|v| v.metadata.as_ref().map(|m| m.accessed.datetime))
+                }
+                PitouFileSortOrder::Decreasing => items.sort_unstable_by_key(|v| {
+                    v.metadata.as_ref().map(|m| Reverse(m.accessed.datetime))
+                }),
+            },
+        }
         items
     }
 }
@@ -79,7 +112,7 @@ impl PitouFileFilter {
     }
 }
 
-#[derive(PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum ItemsView {
     Grid,
     Rows,
@@ -108,9 +141,9 @@ pub struct ColorTheme {
 impl ColorTheme {
     pub const RAMBO: Self = Self {
         background1: Color(230, 230, 230, 255),
-        background2: Color(200, 200, 200, 255),
+        background2: Color(180, 180, 180, 255),
         foreground1: Color(50, 50, 50, 255),
-        foreground2: Color(100, 100, 100, 255),
+        foreground2: Color(80, 80, 80, 255),
         spare1: Color(215, 215, 215, 255),
         spare2: Color(150, 150, 150, 255),
     };
@@ -139,7 +172,7 @@ impl ColorTheme {
         foreground1: Color(240, 240, 240, 255),
         foreground2: Color(255, 255, 255, 255),
         spare1: Color(0, 0, 0, 255),
-        spare2: Color(188, 211, 232, 255),
+        spare2: Color(185, 210, 235, 255),
     };
 
     pub const OCEAN_BLUE: Self = Self {
@@ -176,34 +209,27 @@ pub struct TabCtx {
     pub selected_files: Rc<RefCell<HashSet<PitouFile>>>,
     pub search_results: Rc<RefCell<Option<Rc<Vec<PitouFile>>>>>,
     pub search_options: Rc<RefCell<SimplifiedSearchOptions>>,
-    pub dir_children: Rc<RefCell<Option<Rc<Vec<PitouFile>>>>>,
-    pub dir_siblings: Rc<RefCell<Option<Rc<Vec<PitouFile>>>>>
+    pub dir_children: Rc<RefCell<Option<Rc<Vec<Rc<PitouFile>>>>>>,
+    pub dir_siblings: Rc<RefCell<Option<Rc<Vec<Rc<PitouFile>>>>>>,
 }
 
 impl PartialEq for TabCtx {
     fn eq(&self, other: &Self) -> bool {
-        // Later to change this to false
-        self.current_dir == other.current_dir && self.current_menu == other.current_menu
+        Rc::ptr_eq(&self.current_dir, &other.current_dir)
+            && self.current_menu.as_ptr() == other.current_menu.as_ptr()
     }
 }
 
 impl TabCtx {
-    pub fn default() -> Self {
-        TabCtx::new(
-            PitouFilePath {
-                path: std::path::PathBuf::from("C:/Users/nisaacdz"),
-            },
-            AppMenu::Home,
-        )
-    }
-
     pub fn new_with(current_dir: PitouFilePath) -> Self {
         Self::new(current_dir, AppMenu::Home)
     }
 
     pub(crate) fn new(current_dir: PitouFilePath, current_menu: AppMenu) -> Self {
         Self {
-            search_options: Rc::new(RefCell::new(SimplifiedSearchOptions::default(current_dir.path.clone().into()))),
+            search_options: Rc::new(RefCell::new(SimplifiedSearchOptions::default(
+                current_dir.path.clone().into(),
+            ))),
             current_dir: Rc::new(current_dir),
             current_menu: RefCell::new(current_menu),
             selected_files: Rc::new(RefCell::new(HashSet::new())),
@@ -212,22 +238,6 @@ impl TabCtx {
             dir_siblings: Rc::new(RefCell::new(None)),
         }
     }
-
-    // pub(crate) fn dms(
-    //     current_dir: PitouFilePath,
-    //     current_menu: AppMenu,
-    //     search_options: SimplifiedSearchOptions,
-    // ) -> Self {
-    //     Self {
-    //         search_options: Rc::new(RefCell::new(search_options)),
-    //         current_dir: Rc::new(current_dir),
-    //         current_menu: RefCell::new(current_menu),
-    //         selected_files: Rc::new(RefCell::new(HashSet::new())),
-    //         search_results: Rc::new(RefCell::new(None)),
-    //         dir_children: Rc::new(RefCell::new(None)),
-    //         dir_siblings: Rc::new(RefCell::new(None)),
-    //     }
-    // }
 }
 
 #[derive(PartialEq, Serialize, Deserialize)]
@@ -257,6 +267,7 @@ pub struct AppSettings {
     pub hide_impermisible: bool,
     pub show_thumbnails: bool,
     pub items_view: ItemsView,
+    pub show_parents: bool,
     pub items_zoom: f32,
 }
 
@@ -269,6 +280,7 @@ impl Default for AppSettings {
             hide_impermisible: true,
             show_thumbnails: false,
             items_view: ItemsView::Rows,
+            show_parents: false,
             items_zoom: 1.0,
         }
     }
@@ -285,61 +297,6 @@ pub enum AppMenu {
     Recents,
     Cloud,
     Settings,
-}
-
-pub struct Width {
-    pub value: i32,
-}
-
-impl From<i32> for Width {
-    fn from(value: i32) -> Self {
-        Width { value }
-    }
-}
-
-pub struct Height {
-    pub value: i32,
-}
-
-impl From<i32> for Height {
-    fn from(value: i32) -> Self {
-        Height { value }
-    }
-}
-
-impl std::fmt::Display for Width {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "width: {}px;", self.value)
-    }
-}
-
-impl std::fmt::Display for Height {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "height: {}px;", self.value)
-    }
-}
-
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub struct Rectangle {
-    pub width: i32,
-    pub height: i32,
-}
-
-impl Rectangle {
-    #[allow(unused)]
-    pub fn width(self) -> Width {
-        Width { value: self.width }
-    }
-
-    pub fn height(self) -> Height {
-        Height { value: self.height }
-    }
-}
-
-impl std::fmt::Display for Rectangle {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "width: {}px;\nheight: {}px;", self.width, self.height)
-    }
 }
 
 #[derive(PartialEq, Serialize, Deserialize)]
