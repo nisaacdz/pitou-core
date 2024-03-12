@@ -193,7 +193,7 @@ impl TabCtx {
             PitouFilePath {
                 path: std::path::PathBuf::from("C:/Users/nisaacdz"),
             },
-            AppMenu::Explorer,
+            AppMenu::Home,
         )
     }
 
