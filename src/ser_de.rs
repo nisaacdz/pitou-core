@@ -9,12 +9,11 @@ use crate::{
 
 impl Serialize for TabCtx {
     fn serialize<S: Serializer>(&self, sz: S) -> Result<S::Ok, S::Error> {
-        let mut ss = sz.serialize_struct("TabCtx", 7)?;
-        ss.serialize_field("current_dir", &self.current_dir)?;
+        let mut ss = sz.serialize_struct("TabCtx", 6)?;
+        ss.serialize_field("current_dir", &*self.current_dir)?;
         ss.serialize_field("current_menu", &self.current_menu)?;
         ss.serialize_field("selected_files", &Vec::<PitouFile>::new())?;
         ss.serialize_field("search_results", &None::<Option<Vec<PitouFile>>>)?;
-        ss.serialize_field("search_options", &self.search_options)?;
         ss.serialize_field("dir_children", &None::<Option<Vec<PitouFile>>>)?;
         ss.serialize_field("dir_siblings", &None::<Option<Vec<PitouFile>>>)?;
         ss.end()
@@ -29,7 +28,6 @@ impl<'d> Deserialize<'d> for TabCtx {
             pub current_menu: AppMenu,
             pub selected_files: Vec<PitouFile>,
             pub search_results: Option<Vec<PitouFile>>,
-            pub search_options: SimplifiedSearchOptions,
             pub dir_children: Option<Vec<PitouFile>>,
             pub dir_siblings: Option<Vec<PitouFile>>,
         }
@@ -39,12 +37,11 @@ impl<'d> Deserialize<'d> for TabCtx {
             current_menu,
             selected_files: _,
             search_results: _,
-            search_options,
             dir_children: _,
             dir_siblings: _,
         } = TempVal::deserialize(dz)?;
 
-        Ok(TabCtx::dms(current_dir, current_menu, search_options))
+        Ok(TabCtx::new(current_dir, current_menu))
     }
 }
 

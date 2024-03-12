@@ -171,13 +171,13 @@ impl ColorTheme {
 }
 
 pub struct TabCtx {
-    pub current_dir: PitouFilePath,
-    pub current_menu: AppMenu,
+    pub current_dir: Rc<PitouFilePath>,
+    pub current_menu: RefCell<AppMenu>,
     pub selected_files: Rc<RefCell<HashSet<PitouFile>>>,
-    pub search_results: Option<Rc<Vec<PitouFile>>>,
-    pub search_options: SimplifiedSearchOptions,
-    pub dir_children: Option<Rc<Vec<PitouFile>>>,
-    pub dir_siblings: Option<Rc<Vec<PitouFile>>>,
+    pub search_results: Rc<RefCell<Option<Rc<Vec<PitouFile>>>>>,
+    pub search_options: Rc<RefCell<SimplifiedSearchOptions>>,
+    pub dir_children: Rc<RefCell<Option<Rc<Vec<PitouFile>>>>>,
+    pub dir_siblings: Rc<RefCell<Option<Rc<Vec<PitouFile>>>>>
 }
 
 impl PartialEq for TabCtx {
@@ -201,54 +201,33 @@ impl TabCtx {
         Self::new(current_dir, AppMenu::Home)
     }
 
-    #[cfg(debug_assertions)]
-    pub fn generate() -> Rc<RefCell<Vec<Rc<Self>>>> {
-        let mut res = vec![];
-        let mut a = Self::default();
-        a.current_menu = AppMenu::Home;
-        res.push(Rc::new(a));
-        let mut b = Self::default();
-        b.current_menu = AppMenu::Settings;
-        res.push(Rc::new(b));
-        let mut c = Self::default();
-        c.current_menu = AppMenu::Trash;
-        res.push(Rc::new(c));
-        let mut d = Self::default();
-        d.current_menu = AppMenu::Favorites;
-        res.push(Rc::new(d));
-        let mut e = Self::default();
-        e.current_menu = AppMenu::Recents;
-        res.push(Rc::new(e));
-        Rc::new(RefCell::new(res))
-    }
-
-    fn new(current_dir: PitouFilePath, current_menu: AppMenu) -> Self {
+    pub(crate) fn new(current_dir: PitouFilePath, current_menu: AppMenu) -> Self {
         Self {
-            search_options: SimplifiedSearchOptions::default(current_dir.path.clone().into()),
-            current_dir,
-            current_menu,
+            search_options: Rc::new(RefCell::new(SimplifiedSearchOptions::default(current_dir.path.clone().into()))),
+            current_dir: Rc::new(current_dir),
+            current_menu: RefCell::new(current_menu),
             selected_files: Rc::new(RefCell::new(HashSet::new())),
-            search_results: None,
-            dir_children: None,
-            dir_siblings: None,
+            search_results: Rc::new(RefCell::new(None)),
+            dir_children: Rc::new(RefCell::new(None)),
+            dir_siblings: Rc::new(RefCell::new(None)),
         }
     }
 
-    pub(crate) fn dms(
-        current_dir: PitouFilePath,
-        current_menu: AppMenu,
-        search_options: SimplifiedSearchOptions,
-    ) -> Self {
-        Self {
-            search_options,
-            current_dir,
-            current_menu,
-            selected_files: Rc::new(RefCell::new(HashSet::new())),
-            search_results: None,
-            dir_children: None,
-            dir_siblings: None,
-        }
-    }
+    // pub(crate) fn dms(
+    //     current_dir: PitouFilePath,
+    //     current_menu: AppMenu,
+    //     search_options: SimplifiedSearchOptions,
+    // ) -> Self {
+    //     Self {
+    //         search_options: Rc::new(RefCell::new(search_options)),
+    //         current_dir: Rc::new(current_dir),
+    //         current_menu: RefCell::new(current_menu),
+    //         selected_files: Rc::new(RefCell::new(HashSet::new())),
+    //         search_results: Rc::new(RefCell::new(None)),
+    //         dir_children: Rc::new(RefCell::new(None)),
+    //         dir_siblings: Rc::new(RefCell::new(None)),
+    //     }
+    // }
 }
 
 #[derive(PartialEq, Serialize, Deserialize)]
