@@ -90,23 +90,11 @@ fn serialize_pathbuf<S: Serializer>(path: &PathBuf, sz: S) -> Result<S::Ok, S::E
 #[inline]
 fn deserialize_pathbuf<'d, D: Deserializer<'d>>(dz: D) -> Result<PathBuf, D::Error> {
     use path::MAIN_SEPARATOR as ms;
-    struct VMS;
-
-    impl<'d> Visitor<'d> for VMS {
-        type Value = String;
-    
-        fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-            write!(f, "expecting a text")
-        }
-        
-        fn visit_seq<A: SeqAccess<'d>>(self, mut seq: A) -> Result<Self::Value, A::Error> {
-            let mut ans = String::new();
-            while let Some(c) = seq.next_element::<char>()? {
-                ans.push(if c as u8 == 28 { ms } else { c });
-            }
-            Ok(ans)
+    let mut res = String::deserialize(dz)?;
+    for bc in unsafe { res.as_bytes_mut() } {
+        if *bc == 28 {
+            *bc = ms as u8;
         }
     }
-    let ans = dz.deserialize_seq(VMS)?;
-    Ok(PathBuf::from(ans))
+    Ok(PathBuf::from(res))
 }
