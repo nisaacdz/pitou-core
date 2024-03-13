@@ -28,6 +28,17 @@ impl PitouFilePath {
     pub fn from_pathbuf(pathbuf: PathBuf) -> Self {
         Self { path: pathbuf }
     }
+
+    pub fn ancestors(&self) -> impl Iterator<Item = PitouFilePath> {
+        let mut ll = std::collections::LinkedList::new();
+        for anc in self.path.ancestors() {
+            if anc.as_os_str().len() == 0 {
+                break;
+            }
+            ll.push_front(PitouFilePath::from_pathbuf(std::path::PathBuf::from(anc)))
+        }
+        ll.into_iter()
+    }
 }
 
 #[derive(Serialize, Deserialize)]
@@ -35,7 +46,7 @@ pub struct PitouDateTime {
     pub datetime: NaiveDateTime,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(PartialEq, Clone, Copy, Serialize, Deserialize)]
 pub enum PitouFileKind {
     Directory,
     File,
