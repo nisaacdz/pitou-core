@@ -4,7 +4,7 @@ use crate::{
     frontend::{GeneralFolder, PitouFileFilter, PitouFileSort},
     PitouDateTime, PitouDrive, PitouFile, PitouFilePath, PitouTrashItem, PitouTrashItemMetadata,
 };
-use chrono::{DateTime, NaiveDateTime};
+use chrono::DateTime;
 use trash::TrashItem;
 
 pub mod drive;

@@ -4,7 +4,7 @@ use std::{
     time::SystemTime,
 };
 
-use chrono::NaiveDateTime;
+use chrono::DateTime;
 
 use crate::{
     PitouDateTime, PitouFile, PitouFileKind, PitouFileMetadata, PitouFilePath, PitouFileSize,
@@ -41,7 +41,7 @@ impl From<SystemTime> for PitouDateTime {
             .unwrap()
             .as_millis() as i64;
         Self {
-            datetime: NaiveDateTime::from_timestamp_millis(millis_epoch).unwrap(),
+            datetime: DateTime::from_timestamp_millis(millis_epoch).unwrap().naive_utc(),
         }
     }
 }
