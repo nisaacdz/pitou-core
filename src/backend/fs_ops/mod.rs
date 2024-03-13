@@ -4,7 +4,7 @@ use crate::{
     frontend::{GeneralFolder, PitouFileFilter, PitouFileSort},
     PitouDateTime, PitouDrive, PitouFile, PitouFilePath, PitouTrashItem, PitouTrashItemMetadata,
 };
-use chrono::NaiveDateTime;
+use chrono::{DateTime, NaiveDateTime};
 use trash::TrashItem;
 
 pub mod drive;
@@ -213,9 +213,9 @@ impl From<TrashItem> for PitouTrashItem {
     ) -> Self {
         original_parent.push(name);
         let metadata = PitouTrashItemMetadata {
-            id,
+            id: id.into_string().unwrap(),
             deleted: PitouDateTime {
-                datetime: NaiveDateTime::from_timestamp_millis(1000 * time_deleted).unwrap(),
+                datetime: DateTime::from_timestamp_millis(1000 * time_deleted).unwrap().naive_utc(),
             },
         };
 

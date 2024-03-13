@@ -156,6 +156,6 @@ impl PitouTrashItem {
 
 #[derive(Serialize, Deserialize)]
 pub struct PitouTrashItemMetadata {
-    pub id: OsString,
+    pub id: String,
     pub deleted: PitouDateTime,
 }
