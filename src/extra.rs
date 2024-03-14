@@ -1,7 +1,5 @@
 use std::{
-    fs::{FileType, Metadata},
-    path::PathBuf,
-    time::SystemTime,
+    fs::{FileType, Metadata}, hash::Hash, path::PathBuf, time::SystemTime
 };
 
 use chrono::DateTime;
@@ -63,5 +61,23 @@ impl PitouFile {
         let path = path.into();
         let metadata = metadata.try_into().ok();
         Self { path, metadata }
+    }
+}
+
+impl Hash for PitouFilePath {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        state.write(self.path.as_os_str().as_encoded_bytes())
+    }
+}
+
+impl Hash for PitouFile {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.path.hash(state)
+    }
+}
+
+impl PartialEq for PitouFile {
+    fn eq(&self, other: &Self) -> bool {
+        &self.path == &other.path
     }
 }
