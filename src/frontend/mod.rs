@@ -4,7 +4,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::{search::SimplifiedSearchOptions, PitouFile, PitouFilePath};
 
+use self::extra::PitouFileWrapper;
+
 pub mod msg;
+
+pub mod extra;
 
 #[derive(Clone, Copy, Serialize, Deserialize)]
 pub enum PitouFileSortOrder {
@@ -204,38 +208,91 @@ impl ColorTheme {
 }
 
 pub struct TabCtx {
-    pub current_dir: Rc<PitouFilePath>,
+    pub current_dir: RefCell<Option<Rc<PitouFile>>>,
     pub current_menu: RefCell<AppMenu>,
-    pub selected_files: Rc<RefCell<HashSet<PitouFile>>>,
-    pub search_results: Rc<RefCell<Option<Rc<Vec<PitouFile>>>>>,
-    pub search_options: Rc<RefCell<SimplifiedSearchOptions>>,
-    pub dir_children: Rc<RefCell<Option<Rc<Vec<Rc<PitouFile>>>>>>,
-    pub dir_siblings: Rc<RefCell<Option<Rc<Vec<Rc<PitouFile>>>>>>,
+    pub selected_files: RefCell<HashSet<PitouFileWrapper>>,
+    pub search_results: RefCell<Option<Vec<Rc<PitouFile>>>>,
+    pub search_options: RefCell<Option<SimplifiedSearchOptions>>,
+    pub dir_children: RefCell<Option<Rc<Vec<Rc<PitouFile>>>>>,
+    pub dir_siblings: RefCell<Option<Rc<Vec<Rc<PitouFile>>>>>,
 }
 
 impl PartialEq for TabCtx {
     fn eq(&self, other: &Self) -> bool {
-        Rc::ptr_eq(&self.current_dir, &other.current_dir)
-            && self.current_menu.as_ptr() == other.current_menu.as_ptr()
+        self.current_dir == other.current_dir && self.current_menu == other.current_menu
     }
 }
 
 impl TabCtx {
-    pub fn new_with(current_dir: PitouFilePath) -> Self {
-        Self::new(current_dir, AppMenu::Home)
+    pub fn update_cur_dir(&self, current_dir: Option<Rc<PitouFile>>) {
+        *self.current_dir.borrow_mut() = current_dir;
     }
 
-    pub(crate) fn new(current_dir: PitouFilePath, current_menu: AppMenu) -> Self {
+    pub fn update_cur_menu(&self, current_menu: AppMenu) {
+        *self.current_menu.borrow_mut() = current_menu;
+    }
+
+    pub fn update_selected(&self, items: HashSet<PitouFileWrapper>) {
+        *self.selected_files.borrow_mut() = items;
+    }
+
+    pub fn append_selected(&self, file: Rc<PitouFile>) {
+        self.selected_files
+            .borrow_mut()
+            .insert(PitouFileWrapper { file });
+    }
+
+    pub fn udpate_search_results(&self, results: Option<Vec<Rc<PitouFile>>>) {
+        *self.search_results.borrow_mut() = results;
+    }
+
+    pub fn append_search_results(&self, items: impl Iterator<Item = Rc<PitouFile>>) {
+        let mut res_borrow = self.search_results.borrow_mut();
+        let res = res_borrow.get_or_insert_with(|| Vec::new());
+        res.extend(items)
+    }
+
+    pub fn remove_selected(&self, file: Rc<PitouFile>) {
+        self.selected_files
+            .borrow_mut()
+            .remove(&PitouFileWrapper { file });
+    }
+
+    pub fn update_children(&self, children: Option<Rc<Vec<Rc<PitouFile>>>>) {
+        *self.dir_children.borrow_mut() = children;
+    }
+
+    pub fn update_siblings(&self, siblings: Option<Rc<Vec<Rc<PitouFile>>>>) {
+        *self.dir_siblings.borrow_mut() = siblings;
+    }
+
+    pub fn update_search_options(&self, search_options: Option<SimplifiedSearchOptions>) {
+        *self.search_options.borrow_mut() = search_options;
+    }
+
+    pub fn new_with_dir(current_dir: Rc<PitouFile>, menu: AppMenu) -> Self {
         Self {
-            search_options: Rc::new(RefCell::new(SimplifiedSearchOptions::default(
-                current_dir.path.clone().into(),
+            search_options: RefCell::new(Some(SimplifiedSearchOptions::default(
+                current_dir.clone(),
             ))),
-            current_dir: Rc::new(current_dir),
-            current_menu: RefCell::new(current_menu),
-            selected_files: Rc::new(RefCell::new(HashSet::new())),
-            search_results: Rc::new(RefCell::new(None)),
-            dir_children: Rc::new(RefCell::new(None)),
-            dir_siblings: Rc::new(RefCell::new(None)),
+            current_dir: RefCell::new(Some(current_dir)),
+            current_menu: RefCell::new(menu),
+            selected_files: RefCell::new(HashSet::new()),
+            search_results: RefCell::new(None),
+            dir_children: RefCell::new(None),
+            dir_siblings: RefCell::new(None),
+        }
+    }
+
+    pub fn default() -> Self {
+        Self {
+            search_options: RefCell::new(None),
+            current_dir: RefCell::new(None),
+            current_menu: RefCell::new(AppMenu::Home),
+            selected_files: RefCell::new(HashSet::new()),
+            search_results: RefCell::new(None),
+            dir_children: RefCell::new(None),
+            dir_siblings: RefCell::new(None),
         }
     }
 }

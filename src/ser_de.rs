@@ -1,5 +1,8 @@
 use serde::{ser::SerializeStruct, Deserialize, Deserializer, Serialize, Serializer};
-use std::path::{self, PathBuf};
+use std::{
+    path::{self, PathBuf},
+    rc::Rc,
+};
 
 use crate::{
     frontend::{AppMenu, TabCtx},
@@ -9,7 +12,11 @@ use crate::{
 impl Serialize for TabCtx {
     fn serialize<S: Serializer>(&self, sz: S) -> Result<S::Ok, S::Error> {
         let mut ss = sz.serialize_struct("TabCtx", 6)?;
-        ss.serialize_field("current_dir", &*self.current_dir)?;
+        if let Some(dir) = &*self.current_dir.borrow() {
+            ss.serialize_field("current_dir", &dir.path)?;
+        } else {
+            ss.serialize_field("current_dir", &None::<Option<PitouFile>>)?;
+        }
         ss.serialize_field("current_menu", &self.current_menu)?;
         ss.serialize_field("selected_files", &Vec::<PitouFile>::new())?;
         ss.serialize_field("search_results", &None::<Option<Vec<PitouFile>>>)?;
@@ -40,7 +47,11 @@ impl<'d> Deserialize<'d> for TabCtx {
             dir_siblings: _,
         } = TempVal::deserialize(dz)?;
 
-        Ok(TabCtx::new(current_dir, current_menu))
+        let current_dir = Rc::new(PitouFile {
+            path: current_dir,
+            metadata: None,
+        });
+        Ok(TabCtx::new_with_dir(current_dir, current_menu))
     }
 }
 
@@ -93,4 +104,13 @@ fn deserialize_pathbuf<'d, D: Deserializer<'d>>(dz: D) -> Result<PathBuf, D::Err
         }
     }
     Ok(PathBuf::from(res))
+}
+
+pub fn serialize<S: Serializer>(item: &Rc<PitouFile>, sz: S) -> Result<S::Ok, S::Error> {
+    serialize_pathbuf(&item.path.path, sz)
+}
+
+pub fn deserialize<'d, D: Deserializer<'d>>(dz: D) -> Result<Rc<PitouFile>, D::Error> {
+    let item = PitouFile::deserialize(dz)?;
+    Ok(Rc::new(item))
 }

@@ -171,7 +171,7 @@ impl From<SearchOptions> for (SearchVariables, PathBuf) {
                 skip_errors,
                 search_type: Arc::new(search_type),
             },
-            search_dir.path,
+            search_dir.path.path.clone(),
         )
     }
 }

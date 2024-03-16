@@ -1,7 +1,9 @@
+use std::rc::Rc;
+
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
-use crate::{frontend::PitouFileFilter, PitouFilePath};
+use crate::{frontend::PitouFileFilter, PitouFile};
 
 #[derive(Clone, Serialize, Deserialize)]
 pub(crate) enum SearchType {
@@ -27,7 +29,8 @@ impl SearchType {
 
 #[derive(Serialize, Deserialize)]
 pub struct SimplifiedSearchOptions {
-    search_dir: PitouFilePath,
+    #[serde(with = "crate::ser_de")]
+    search_dir: Rc<PitouFile>,
     input: String,
     search_kind: u8,
     depth: u8,
@@ -39,7 +42,7 @@ pub struct SimplifiedSearchOptions {
 }
 
 impl SimplifiedSearchOptions {
-    pub fn default(current_dir: PitouFilePath) -> Self {
+    pub fn default(current_dir: Rc<PitouFile>) -> Self {
         Self {
             search_dir: current_dir,
             input: String::new(),
@@ -74,7 +77,8 @@ impl SimplifiedSearchOptions {
 
 #[derive(Serialize, Deserialize)]
 pub struct SearchOptions {
-    pub(crate) search_dir: PitouFilePath,
+    #[serde(with = "crate::ser_de")]
+    pub(crate) search_dir: Rc<PitouFile>,
     pub(crate) hardware_accelerate: bool,
     pub(crate) filter: PitouFileFilter,
     pub(crate) case_sensitive: bool,
@@ -85,7 +89,7 @@ pub struct SearchOptions {
 }
 
 impl SearchOptions {
-    pub fn new(search_dir: PitouFilePath, key: String) -> Self {
+    pub fn new(search_dir: Rc<PitouFile>, key: String) -> Self {
         Self {
             search_dir,
             filter: PitouFileFilter::new(),

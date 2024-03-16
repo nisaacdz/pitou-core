@@ -149,8 +149,12 @@ pub async fn siblings(
     children(dir, filter, sort).await
 }
 
-pub fn default_folder() -> PitouFilePath {
-    PitouFilePath::from_pathbuf(dirs::home_dir().unwrap())
+pub fn default_folder() -> PitouFile {
+    let path = PitouFilePath::from_pathbuf(dirs::home_dir().unwrap());
+    PitouFile {
+        path,
+        metadata: None,
+    }
 }
 
 fn downloads_folder() -> PitouFilePath {
@@ -215,7 +219,9 @@ impl From<TrashItem> for PitouTrashItem {
         let metadata = PitouTrashItemMetadata {
             id: id.into_string().unwrap(),
             deleted: PitouDateTime {
-                datetime: DateTime::from_timestamp_millis(1000 * time_deleted).unwrap().naive_utc(),
+                datetime: DateTime::from_timestamp_millis(1000 * time_deleted)
+                    .unwrap()
+                    .naive_utc(),
             },
         };
 

@@ -1,5 +1,8 @@
 use std::{
-    fs::{FileType, Metadata}, hash::Hash, path::PathBuf, time::SystemTime
+    fs::{FileType, Metadata},
+    hash::Hash,
+    path::PathBuf,
+    time::SystemTime,
 };
 
 use chrono::DateTime;
@@ -39,7 +42,9 @@ impl From<SystemTime> for PitouDateTime {
             .unwrap()
             .as_millis() as i64;
         Self {
-            datetime: DateTime::from_timestamp_millis(millis_epoch).unwrap().naive_utc(),
+            datetime: DateTime::from_timestamp_millis(millis_epoch)
+                .unwrap()
+                .naive_utc(),
         }
     }
 }
@@ -67,12 +72,6 @@ impl PitouFile {
 impl Hash for PitouFilePath {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         state.write(self.path.as_os_str().as_encoded_bytes())
-    }
-}
-
-impl Hash for PitouFile {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.path.hash(state)
     }
 }
 

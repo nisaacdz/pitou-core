@@ -9,7 +9,7 @@ pub mod backend;
 pub mod search;
 
 pub mod frontend;
-mod ser_de;
+pub(crate) mod ser_de;
 
 /// Custom file type which is just a wrapper around the std `PathBuf` for cross-platform serialization and deserialization.
 #[derive(PartialEq)]
