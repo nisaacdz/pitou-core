@@ -7,6 +7,7 @@ mod extra;
 pub mod backend;
 
 pub mod search;
+pub mod collections;
 
 pub mod frontend;
 pub(crate) mod ser_de;
@@ -27,6 +28,10 @@ impl PitouFilePath {
 
     pub fn from_pathbuf(pathbuf: PathBuf) -> Self {
         Self { path: pathbuf }
+    }
+
+    pub fn as_bytes(&self) -> &[u8] {
+        self.path.as_os_str().as_encoded_bytes()
     }
 
     pub fn ancestors(&self) -> impl Iterator<Item = PitouFilePath> {
@@ -98,7 +103,7 @@ impl PitouFileMetadata {
     }
 }
 
-#[derive(Serialize, Deserialize, PartialEq)]
+#[derive(Serialize, Deserialize)]
 pub struct PitouDrive {
     pub name: String,
     pub mount_point: PitouFilePath,
@@ -106,6 +111,12 @@ pub struct PitouDrive {
     pub free_space: u64,
     pub is_removable: bool,
     pub kind: PitouDriveKind,
+}
+
+impl PartialEq for PitouDrive {
+    fn eq(&self, other: &Self) -> bool {
+        &self.mount_point == &other.mount_point
+    }
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]

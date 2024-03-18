@@ -2,9 +2,9 @@ use std::{cell::RefCell, cmp::Reverse, collections::HashSet, rc::Rc};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{search::SimplifiedSearchOptions, PitouFile, PitouFilePath};
+use crate::{search::SimplifiedSearchOptions, PitouDrive, PitouFile, PitouFilePath};
 
-use self::extra::PitouFileWrapper;
+use self::extra::VWrapper;
 
 pub mod msg;
 
@@ -210,7 +210,6 @@ impl ColorTheme {
 pub struct TabCtx {
     pub current_dir: RefCell<Option<Rc<PitouFile>>>,
     pub current_menu: RefCell<AppMenu>,
-    pub selected_files: RefCell<HashSet<PitouFileWrapper>>,
     pub search_results: RefCell<Option<Vec<Rc<PitouFile>>>>,
     pub search_options: RefCell<Option<SimplifiedSearchOptions>>,
     pub dir_children: RefCell<Option<Rc<Vec<Rc<PitouFile>>>>>,
@@ -232,16 +231,6 @@ impl TabCtx {
         *self.current_menu.borrow_mut() = current_menu;
     }
 
-    pub fn update_selected(&self, items: HashSet<PitouFileWrapper>) {
-        *self.selected_files.borrow_mut() = items;
-    }
-
-    pub fn append_selected(&self, file: Rc<PitouFile>) {
-        self.selected_files
-            .borrow_mut()
-            .insert(PitouFileWrapper { file });
-    }
-
     pub fn udpate_search_results(&self, results: Option<Vec<Rc<PitouFile>>>) {
         *self.search_results.borrow_mut() = results;
     }
@@ -250,12 +239,6 @@ impl TabCtx {
         let mut res_borrow = self.search_results.borrow_mut();
         let res = res_borrow.get_or_insert_with(|| Vec::new());
         res.extend(items)
-    }
-
-    pub fn remove_selected(&self, file: Rc<PitouFile>) {
-        self.selected_files
-            .borrow_mut()
-            .remove(&PitouFileWrapper { file });
     }
 
     pub fn update_children(&self, children: Option<Rc<Vec<Rc<PitouFile>>>>) {
@@ -277,7 +260,6 @@ impl TabCtx {
             ))),
             current_dir: RefCell::new(Some(current_dir)),
             current_menu: RefCell::new(menu),
-            selected_files: RefCell::new(HashSet::new()),
             search_results: RefCell::new(None),
             dir_children: RefCell::new(None),
             dir_siblings: RefCell::new(None),
@@ -289,11 +271,50 @@ impl TabCtx {
             search_options: RefCell::new(None),
             current_dir: RefCell::new(None),
             current_menu: RefCell::new(AppMenu::Home),
-            selected_files: RefCell::new(HashSet::new()),
             search_results: RefCell::new(None),
             dir_children: RefCell::new(None),
             dir_siblings: RefCell::new(None),
         }
+    }
+}
+
+pub struct StaticData {
+    pub drives: RefCell<Rc<Vec<Rc<PitouDrive>>>>,
+    pub selections: RefCell<HashSet<VWrapper>>,
+}
+
+impl StaticData {
+    pub fn new() -> Self {
+        Self {
+            drives: RefCell::new(Rc::new(Vec::new())),
+            selections: RefCell::new(HashSet::new()),
+        }
+    }
+
+    pub fn update_drives(&self, drives: Rc<Vec<Rc<PitouDrive>>>) {
+        *self.drives.borrow_mut() = drives;
+    }
+
+    pub fn clear_selection(&self, item: VWrapper) {
+        self.selections
+            .borrow_mut()
+            .remove(&item);
+    }
+
+    pub fn clear_all_selections(&self) {
+        self.selections.borrow_mut().clear()
+    }
+
+    pub fn is_selected(&self, item: VWrapper) -> bool {
+        self.selections
+            .borrow()
+            .contains(&item)
+    }
+
+    pub fn add_selection(&self, item: VWrapper) {
+        self.selections
+            .borrow_mut()
+            .insert(item);
     }
 }
 
@@ -367,6 +388,16 @@ pub enum GeneralFolder {
 }
 
 impl GeneralFolder {
+    pub fn o_name(&self) -> &str {
+        match self {
+            GeneralFolder::DocumentsFolder(d) => d.name(),
+            GeneralFolder::AudiosFolder(a) => a.name(),
+            GeneralFolder::PicturesFolder(p) => p.name(),
+            GeneralFolder::VideosFolder(v) => v.name(),
+            GeneralFolder::DesktopFolder(d) => d.name(),
+            GeneralFolder::DownloadsFolder(d) => d.name(),
+        }
+    }
     pub fn name(&self) -> String {
         match self {
             GeneralFolder::DocumentsFolder(_) => String::from("Documents"),

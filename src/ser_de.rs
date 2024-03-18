@@ -32,7 +32,6 @@ impl<'d> Deserialize<'d> for TabCtx {
         struct TempVal {
             pub current_dir: PitouFilePath,
             pub current_menu: AppMenu,
-            pub selected_files: Vec<PitouFile>,
             pub search_results: Option<Vec<PitouFile>>,
             pub dir_children: Option<Vec<PitouFile>>,
             pub dir_siblings: Option<Vec<PitouFile>>,
@@ -41,7 +40,6 @@ impl<'d> Deserialize<'d> for TabCtx {
         let TempVal {
             current_dir,
             current_menu,
-            selected_files: _,
             search_results: _,
             dir_children: _,
             dir_siblings: _,
