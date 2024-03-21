@@ -77,7 +77,7 @@ impl SearchType {
 pub mod stream {
     use std::{collections::LinkedList, sync::OnceLock};
 
-    use crate::{frontend::msg::SearchMsg, PitouFile};
+    use crate::{msg::SearchMsg, PitouFile};
     use tokio::{sync::Mutex, task::JoinHandle};
 
     type QUEUE = Mutex<Option<LinkedList<PitouFile>>>;
