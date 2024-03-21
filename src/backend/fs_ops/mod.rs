@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
 use crate::{
-    frontend::{GeneralFolder, PitouFileFilter, PitouFileSort},
-    PitouDateTime, PitouDrive, PitouFile, PitouFilePath, PitouTrashItem, PitouTrashItemMetadata,
+    GeneralFolder, PitouDateTime, PitouDrive, PitouFile, PitouFileFilter, PitouFilePath,
+    PitouFileSort, PitouTrashItem, PitouTrashItemMetadata,
 };
 use chrono::DateTime;
 use trash::TrashItem;

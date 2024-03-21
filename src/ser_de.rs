@@ -1,14 +1,12 @@
-use serde::{ser::SerializeStruct, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::{
     path::{self, PathBuf},
     rc::Rc,
 };
 
-use crate::{
-    frontend::{AppMenu, TabCtx},
-    PitouFile, PitouFilePath, PitouFileSize,
-};
+use crate::{PitouFile, PitouFilePath, PitouFileSize};
 
+/* *
 impl Serialize for TabCtx {
     fn serialize<S: Serializer>(&self, sz: S) -> Result<S::Ok, S::Error> {
         let mut ss = sz.serialize_struct("TabCtx", 6)?;
@@ -52,6 +50,8 @@ impl<'d> Deserialize<'d> for TabCtx {
         Ok(TabCtx::new_with_dir(current_dir, current_menu))
     }
 }
+
+*/
 
 impl Serialize for PitouFileSize {
     fn serialize<S: Serializer>(&self, sz: S) -> Result<S::Ok, S::Error> {

@@ -1,7 +1,6 @@
 use crate::{
-    frontend::PitouFileFilter,
     search::{SearchOptions, SearchType},
-    PitouFile,
+    PitouFile, PitouFileFilter,
 };
 use std::{path::PathBuf, sync::Arc};
 

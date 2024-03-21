@@ -1,214 +1,23 @@
-use std::{cell::RefCell, cmp::Reverse, collections::HashSet, rc::Rc};
+use std::{
+    cell::RefCell,
+    collections::HashSet,
+    hash::{Hash, Hasher},
+    rc::Rc,
+};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{search::SimplifiedSearchOptions, PitouDrive, PitouFile, PitouFilePath};
+use crate::{
+    search::SimplifiedSearchOptions, AppMenu, AppSettings, ColorTheme, GeneralFolder, PitouDrive,
+    PitouFile, PitouTrashItem,
+};
 
-use self::extra::VWrapper;
-
-pub mod msg;
+use self::extra::FolderTracker;
 
 pub mod extra;
 
-#[derive(Clone, Copy, Serialize, Deserialize)]
-pub enum PitouFileSortOrder {
-    Increasing,
-    Decreasing,
-}
-
-#[derive(Clone, Copy, Serialize, Deserialize)]
-pub enum PitouFileSort {
-    DateCreated(PitouFileSortOrder),
-    Name(PitouFileSortOrder),
-    DateModified(PitouFileSortOrder),
-    DateAccessed(PitouFileSortOrder),
-}
-
-impl PitouFileSort {
-    pub fn sorted(self, mut items: Vec<PitouFile>) -> Vec<PitouFile> {
-        match self {
-            PitouFileSort::DateCreated(order) => match order {
-                PitouFileSortOrder::Increasing => {
-                    items.sort_unstable_by_key(|v| v.metadata.as_ref().map(|m| m.created.datetime))
-                }
-                PitouFileSortOrder::Decreasing => items.sort_unstable_by_key(|v| {
-                    v.metadata.as_ref().map(|m| Reverse(m.created.datetime))
-                }),
-            },
-            PitouFileSort::Name(order) => match order {
-                PitouFileSortOrder::Increasing => {
-                    items.sort_unstable_by(|a, b| a.name().cmp(&b.name()))
-                }
-                PitouFileSortOrder::Decreasing => {
-                    items.sort_unstable_by(|a, b| b.name().cmp(&a.name()))
-                }
-            },
-            PitouFileSort::DateModified(order) => match order {
-                PitouFileSortOrder::Increasing => {
-                    items.sort_unstable_by_key(|v| v.metadata.as_ref().map(|m| m.modified.datetime))
-                }
-                PitouFileSortOrder::Decreasing => items.sort_unstable_by_key(|v| {
-                    v.metadata.as_ref().map(|m| Reverse(m.modified.datetime))
-                }),
-            },
-            PitouFileSort::DateAccessed(order) => match order {
-                PitouFileSortOrder::Increasing => {
-                    items.sort_unstable_by_key(|v| v.metadata.as_ref().map(|m| m.accessed.datetime))
-                }
-                PitouFileSortOrder::Decreasing => items.sort_unstable_by_key(|v| {
-                    v.metadata.as_ref().map(|m| Reverse(m.accessed.datetime))
-                }),
-            },
-        }
-        items
-    }
-}
-
-#[derive(Clone, Copy, Serialize, Deserialize)]
-pub struct PitouFileFilter {
-    pub files: bool,
-    pub links: bool,
-    pub dirs: bool,
-}
-
-impl PitouFileFilter {
-    pub fn new() -> Self {
-        Self {
-            files: true,
-            links: false,
-            dirs: true,
-        }
-    }
-
-    pub fn include_all() -> Self {
-        Self {
-            files: true,
-            links: true,
-            dirs: true,
-        }
-    }
-
-    pub fn map(self, file: PitouFile) -> Option<PitouFile> {
-        if (file.is_dir() && self.include_dirs())
-            || (file.is_file() && self.include_files())
-            || (file.is_link() && self.include_links())
-        {
-            Some(file)
-        } else {
-            None
-        }
-    }
-
-    pub fn all_filtered(self) -> bool {
-        !self.dirs && !self.files && !self.links
-    }
-
-    pub fn include_dirs(self) -> bool {
-        self.dirs
-    }
-
-    pub fn include_files(self) -> bool {
-        self.files
-    }
-
-    pub fn include_links(self) -> bool {
-        self.links
-    }
-}
-
-#[derive(Clone, Copy, PartialEq, Serialize, Deserialize)]
-pub enum ItemsView {
-    Grid,
-    Rows,
-    Tiles,
-}
-
-#[derive(PartialEq, Clone, Copy, Serialize, Deserialize)]
-pub struct Color(pub u8, pub u8, pub u8, pub u8);
-
-impl std::fmt::Display for Color {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write! {f, "rgba({}, {}, {}, {})", self.0, self.1, self.2, self.3}
-    }
-}
-
-#[derive(PartialEq, Clone, Copy, Serialize, Deserialize)]
-pub struct ColorTheme {
-    pub background1: Color,
-    pub background2: Color,
-    pub foreground1: Color,
-    pub foreground2: Color,
-    pub spare1: Color,
-    pub spare2: Color,
-}
-
-impl ColorTheme {
-    pub const RAMBO: Self = Self {
-        background1: Color(230, 230, 230, 255),
-        background2: Color(180, 180, 180, 255),
-        foreground1: Color(50, 50, 50, 255),
-        foreground2: Color(80, 80, 80, 255),
-        spare1: Color(215, 215, 215, 255),
-        spare2: Color(150, 150, 150, 255),
-    };
-
-    pub const DEFAULT_DARK: Self = Self {
-        background1: Color(25, 25, 112, 255),
-        background2: Color(0, 0, 51, 255),
-        foreground1: Color(255, 255, 255, 255),
-        foreground2: Color(192, 192, 192, 255),
-        spare1: Color(153, 50, 204, 255),
-        spare2: Color(255, 0, 0, 255),
-    };
-
-    pub const POLISH: Self = Self {
-        background1: Color(30, 30, 30, 255),
-        background2: Color(60, 60, 60, 255),
-        foreground1: Color(220, 220, 220, 255),
-        foreground2: Color(180, 180, 180, 255),
-        spare1: Color(45, 45, 45, 255),
-        spare2: Color(100, 100, 100, 255),
-    };
-
-    pub const GPT_DARK: Self = Self {
-        background1: Color(50, 50, 50, 255),
-        background2: Color(105, 105, 105, 255),
-        foreground1: Color(240, 240, 240, 255),
-        foreground2: Color(255, 255, 255, 255),
-        spare1: Color(0, 0, 0, 255),
-        spare2: Color(185, 210, 235, 255),
-    };
-
-    pub const OCEAN_BLUE: Self = Self {
-        background1: Color(100, 200, 255, 255),
-        background2: Color(50, 100, 200, 255),
-        foreground1: Color(255, 255, 255, 255),
-        foreground2: Color(245, 225, 180, 255),
-        spare1: Color(25, 50, 100, 255),
-        spare2: Color(150, 15, 50, 255),
-    };
-
-    pub const GEM_LIGHT: Self = Self {
-        background1: Color(240, 240, 240, 255),
-        background2: Color(200, 200, 200, 255),
-        foreground1: Color(50, 50, 50, 255),
-        foreground2: Color(0, 128, 128, 255),
-        spare1: Color(170, 170, 170, 255),
-        spare2: Color(255, 165, 0, 255),
-    };
-
-    pub const GEM_DARK: Self = Self {
-        background1: Color(50, 50, 50, 255),
-        background2: Color(30, 30, 30, 255),
-        foreground1: Color(240, 240, 240, 255),
-        foreground2: Color(0, 255, 255, 255),
-        spare1: Color(100, 100, 100, 255),
-        spare2: Color(255, 192, 203, 255),
-    };
-}
-
 pub struct TabCtx {
-    pub current_dir: RefCell<Option<Rc<PitouFile>>>,
+    pub folder_tracker: RefCell<Option<FolderTracker>>,
     pub current_menu: RefCell<AppMenu>,
     pub search_results: RefCell<Option<Vec<Rc<PitouFile>>>>,
     pub search_options: RefCell<Option<SimplifiedSearchOptions>>,
@@ -216,15 +25,22 @@ pub struct TabCtx {
     pub dir_siblings: RefCell<Option<Rc<Vec<Rc<PitouFile>>>>>,
 }
 
-impl PartialEq for TabCtx {
-    fn eq(&self, other: &Self) -> bool {
-        self.current_dir == other.current_dir && self.current_menu == other.current_menu
-    }
-}
-
 impl TabCtx {
+    pub fn current_dir(&self) -> Option<Rc<PitouFile>> {
+        self.folder_tracker.borrow().as_ref().map(|v| v.current())
+    }
+
     pub fn update_cur_dir(&self, current_dir: Option<Rc<PitouFile>>) {
-        *self.current_dir.borrow_mut() = current_dir;
+        if let Some(current_dir) = current_dir {
+            let mut borrow = self.folder_tracker.borrow_mut();
+            if let Some(val) = &mut *borrow {
+                val.update_directory(current_dir)
+            } else {
+                let _ = borrow.insert(FolderTracker::new(current_dir));
+            }
+        } else {
+            self.folder_tracker.borrow_mut().take();
+        }
     }
 
     pub fn update_cur_menu(&self, current_menu: AppMenu) {
@@ -258,7 +74,7 @@ impl TabCtx {
             search_options: RefCell::new(Some(SimplifiedSearchOptions::default(
                 current_dir.clone(),
             ))),
-            current_dir: RefCell::new(Some(current_dir)),
+            folder_tracker: RefCell::new(Some(FolderTracker::new(current_dir))),
             current_menu: RefCell::new(menu),
             search_results: RefCell::new(None),
             dir_children: RefCell::new(None),
@@ -269,7 +85,7 @@ impl TabCtx {
     pub fn default() -> Self {
         Self {
             search_options: RefCell::new(None),
-            current_dir: RefCell::new(None),
+            folder_tracker: RefCell::new(None),
             current_menu: RefCell::new(AppMenu::Home),
             search_results: RefCell::new(None),
             dir_children: RefCell::new(None),
@@ -296,9 +112,7 @@ impl StaticData {
     }
 
     pub fn clear_selection(&self, item: VWrapper) {
-        self.selections
-            .borrow_mut()
-            .remove(&item);
+        self.selections.borrow_mut().remove(&item);
     }
 
     pub fn clear_all_selections(&self) {
@@ -306,15 +120,11 @@ impl StaticData {
     }
 
     pub fn is_selected(&self, item: VWrapper) -> bool {
-        self.selections
-            .borrow()
-            .contains(&item)
+        self.selections.borrow().contains(&item)
     }
 
     pub fn add_selection(&self, item: VWrapper) {
-        self.selections
-            .borrow_mut()
-            .insert(item);
+        self.selections.borrow_mut().insert(item);
     }
 }
 
@@ -337,75 +147,43 @@ impl Default for GenCtx {
     }
 }
 
-#[derive(PartialEq, Serialize, Deserialize)]
-pub struct AppSettings {
-    pub refresh_rate: u8,
-    pub show_extensions: bool,
-    pub single_click_opens: bool,
-    pub hide_impermisible: bool,
-    pub show_thumbnails: bool,
-    pub items_view: ItemsView,
-    pub show_parents: bool,
-    pub items_zoom: f32,
+pub enum VWrapper {
+    Drive(Rc<PitouDrive>),
+    GenFolder(Rc<GeneralFolder>),
+    FirstAncestor(Rc<PitouFile>),
+    FullPath(Rc<PitouFile>),
+    TrashItem(Rc<PitouTrashItem>),
 }
 
-impl Default for AppSettings {
-    fn default() -> Self {
-        Self {
-            refresh_rate: 250,
-            show_extensions: true,
-            single_click_opens: false,
-            hide_impermisible: true,
-            show_thumbnails: false,
-            items_view: ItemsView::Rows,
-            show_parents: false,
-            items_zoom: 1.0,
-        }
+impl Hash for VWrapper {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let bytes = match self {
+            VWrapper::Drive(d) => d.mount_point.as_bytes(),
+            VWrapper::GenFolder(g) => g.o_name().as_bytes(),
+            VWrapper::FirstAncestor(f) => f.name().as_bytes(),
+            VWrapper::FullPath(f) => f.path.as_bytes(),
+            VWrapper::TrashItem(t) => t.metadata.id.as_bytes(),
+        };
+        state.write(bytes);
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Serialize, Deserialize)]
-pub enum AppMenu {
-    Home,
-    Explorer,
-    Trash,
-    Favorites,
-    Search,
-    Locked,
-    Recents,
-    Cloud,
-    Settings,
-}
-
-#[derive(PartialEq, Serialize, Deserialize)]
-pub enum GeneralFolder {
-    DocumentsFolder(PitouFilePath),
-    AudiosFolder(PitouFilePath),
-    PicturesFolder(PitouFilePath),
-    VideosFolder(PitouFilePath),
-    DesktopFolder(PitouFilePath),
-    DownloadsFolder(PitouFilePath),
-}
-
-impl GeneralFolder {
-    pub fn o_name(&self) -> &str {
+impl PartialEq for VWrapper {
+    fn eq(&self, other: &Self) -> bool {
         match self {
-            GeneralFolder::DocumentsFolder(d) => d.name(),
-            GeneralFolder::AudiosFolder(a) => a.name(),
-            GeneralFolder::PicturesFolder(p) => p.name(),
-            GeneralFolder::VideosFolder(v) => v.name(),
-            GeneralFolder::DesktopFolder(d) => d.name(),
-            GeneralFolder::DownloadsFolder(d) => d.name(),
-        }
-    }
-    pub fn name(&self) -> String {
-        match self {
-            GeneralFolder::DocumentsFolder(_) => String::from("Documents"),
-            GeneralFolder::AudiosFolder(_) => String::from("Audios"),
-            GeneralFolder::PicturesFolder(_) => String::from("pictures"),
-            GeneralFolder::VideosFolder(_) => String::from("Videos"),
-            GeneralFolder::DesktopFolder(_) => String::from("Desktop"),
-            GeneralFolder::DownloadsFolder(_) => String::from("Downloads"),
+            VWrapper::Drive(d1) => matches!(other, Self::Drive(d2) if d1 == d2),
+            VWrapper::GenFolder(g1) => {
+                matches!(other, Self::GenFolder(g2) if g1.o_name() == g2.o_name())
+            }
+            VWrapper::FirstAncestor(a1) => {
+                matches!(other, Self::FirstAncestor(a2) if a1.name() == a2.name())
+            }
+            VWrapper::FullPath(f1) => matches!(other, Self::FullPath(f2) if f1.path == f2.path),
+            VWrapper::TrashItem(t1) => {
+                matches!(other, Self::TrashItem(t2) if t1.original_path == t2.original_path)
+            }
         }
     }
 }
+
+impl Eq for VWrapper {}

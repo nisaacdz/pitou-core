@@ -3,7 +3,7 @@ use std::rc::Rc;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
-use crate::{frontend::PitouFileFilter, PitouFile};
+use crate::{PitouFile, PitouFileFilter};
 
 #[derive(Clone, Serialize, Deserialize)]
 pub(crate) enum SearchType {

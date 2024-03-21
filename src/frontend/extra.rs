@@ -1,44 +1,61 @@
-use std::{hash::{Hash, Hasher}, rc::Rc};
+use std::{rc::Rc, slice::Iter};
 
-use crate::{frontend::GeneralFolder, PitouDrive, PitouFile, PitouTrashItem};
+use crate::PitouFile;
 
-pub enum VWrapper {
-    Drive(Rc<PitouDrive>),
-    GenFolder(Rc<GeneralFolder>),
-    FirstAncestor(Rc<PitouFile>),
-    FullPath(Rc<PitouFile>),
-    TrashItem(Rc<PitouTrashItem>),
+pub struct FolderTracker {
+    pub items: Vec<Rc<PitouFile>>,
+    pub idx: usize,
 }
 
-impl Hash for VWrapper {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        let bytes = match self {
-            VWrapper::Drive(d) => d.mount_point.as_bytes(),
-            VWrapper::GenFolder(g) => g.o_name().as_bytes(),
-            VWrapper::FirstAncestor(f) => f.name().as_bytes(),
-            VWrapper::FullPath(f) => f.path.as_bytes(),
-            VWrapper::TrashItem(t) => t.metadata.id.as_bytes(),
-        };
-        state.write(bytes);
+impl FolderTracker {
+    pub fn new(val: Rc<PitouFile>) -> Self {
+        Self {
+            items: vec![val],
+            idx: 0,
+        }
     }
-}
 
-impl PartialEq for VWrapper {
-    fn eq(&self, other: &Self) -> bool {
-        match self {
-            VWrapper::Drive(d1) => matches!(other, Self::Drive(d2) if d1 == d2),
-            VWrapper::GenFolder(g1) => {
-                matches!(other, Self::GenFolder(g2) if g1.o_name() == g2.o_name())
-            }
-            VWrapper::FirstAncestor(a1) => {
-                matches!(other, Self::FirstAncestor(a2) if a1.name() == a2.name())
-            }
-            VWrapper::FullPath(f1) => matches!(other, Self::FullPath(f2) if f1.path == f2.path),
-            VWrapper::TrashItem(t1) => {
-                matches!(other, Self::TrashItem(t2) if t1.original_path == t2.original_path)
-            }
+    pub fn current(&self) -> Rc<PitouFile> {
+        self.items[self.idx].clone()
+    }
+
+    pub fn all(&self) -> Iter<Rc<PitouFile>> {
+        self.items.iter()
+    }
+
+    pub fn next(&self) -> Option<Rc<PitouFile>> {
+        if self.idx + 1 >= self.items.len() {
+            None
+        } else {
+            Some(self.items[self.idx + 1].clone())
+        }
+    }
+
+    pub fn prev(&self) -> Option<Rc<PitouFile>> {
+        if self.idx == 0 {
+            None
+        } else {
+            Some(self.items[self.idx - 1].clone())
+        }
+    }
+
+    pub fn update_directory(&mut self, new_dir: Rc<PitouFile>) {
+        while self.idx + 1 < self.items.len() {
+            self.items.pop();
+        }
+        self.items.push(new_dir);
+        self.idx += 1;
+    }
+
+    pub fn go_back(&mut self) {
+        if self.idx > 0 {
+            self.idx -= 1;
+        }
+    }
+
+    pub fn go_forward(&mut self) {
+        if self.idx + 1 < self.items.len() {
+            self.idx += 1;
         }
     }
 }
-
-impl Eq for VWrapper {}
