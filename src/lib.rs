@@ -22,10 +22,12 @@ pub struct PitouFilePath {
 
 impl PitouFilePath {
     pub fn name(&self) -> &str {
-        self.path
+        if self.path.as_os_str().len() == 0 { return "Drives" }
+        let res = self.path
             .file_name()
-            .map(|v| v.to_str().unwrap())
-            .unwrap_or_default()
+            .map(|v| v.to_str().unwrap_or_default())
+            .unwrap_or_default();
+        res
     }
 
     pub fn from_pathbuf(pathbuf: PathBuf) -> Self {
@@ -39,9 +41,6 @@ impl PitouFilePath {
     pub fn ancestors(&self) -> impl Iterator<Item = PitouFilePath> {
         let mut ll = std::collections::LinkedList::new();
         for anc in self.path.ancestors() {
-            if anc.as_os_str().len() == 0 {
-                break;
-            }
             ll.push_front(PitouFilePath::from_pathbuf(std::path::PathBuf::from(anc)))
         }
         ll.into_iter()
@@ -88,6 +87,10 @@ impl PitouFileSize {
     pub fn new(value: u64) -> Self {
         Self { bytes: value }
     }
+
+    pub fn format_as_dir_entries(&self) -> String {
+        format!("{} items", self.bytes)
+    }
 }
 
 #[derive(Serialize, Deserialize)]
@@ -100,6 +103,10 @@ pub struct PitouFileMetadata {
 }
 
 impl PitouFileMetadata {
+    pub fn is_dir(&self) -> bool {
+        matches!(self.kind, PitouFileKind::Directory)
+    }
+
     fn attempt(path: &PathBuf) -> Option<Self> {
         std::fs::metadata(path).map(|v| v.into()).ok()
     }

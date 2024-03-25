@@ -101,17 +101,8 @@ fn deserialize_pathbuf<'d, D: Deserializer<'d>>(dz: D) -> Result<PathBuf, D::Err
             *bc = ms as u8;
         }
     }
-    if res.len() == 1 {
-        res.push(':');
-        res.push(ms);
-    } else if res.len() == 2 {
-        if res.as_bytes()[1] == b':' {
-            res.push(ms);
-        } else if res.ends_with(ms) {
-            res.pop();
-            res.push(':');
-            res.push(ms);
-        }
+    if res.as_bytes()[1] == ms as u8 {
+        res.insert(1, ':');
     }
     Ok(PathBuf::from(res))
 }
