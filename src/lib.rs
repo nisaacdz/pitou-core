@@ -169,7 +169,7 @@ impl PitouFile {
     }
 
     pub fn name(&self) -> &str {
-        self.path.path.file_name().unwrap().to_str().unwrap()
+        self.path.name()
     }
 }
 
