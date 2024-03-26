@@ -171,7 +171,6 @@ impl PitouFile {
     }
 }
 
-#[derive(Serialize, Deserialize)]
 pub struct PitouTrashItem {
     pub original_path: PitouFilePath,
     pub metadata: PitouTrashItemMetadata,
@@ -392,7 +391,7 @@ pub enum AppMenu {
     Settings,
 }
 
-#[derive(PartialEq, Serialize, Deserialize)]
+#[derive(PartialEq)]
 pub enum GeneralFolder {
     DocumentsFolder(PitouFilePath),
     AudiosFolder(PitouFilePath),
@@ -421,6 +420,17 @@ impl GeneralFolder {
             GeneralFolder::VideosFolder(_) => String::from("Videos"),
             GeneralFolder::DesktopFolder(_) => String::from("Desktop"),
             GeneralFolder::DownloadsFolder(_) => String::from("Downloads"),
+        }
+    }
+
+    pub fn path(&self) -> &PitouFilePath {
+        match self {
+            GeneralFolder::DocumentsFolder(path) => path,
+            GeneralFolder::AudiosFolder(path) => path,
+            GeneralFolder::PicturesFolder(path) => path,
+            GeneralFolder::VideosFolder(path) => path,
+            GeneralFolder::DesktopFolder(path) => path,
+            GeneralFolder::DownloadsFolder(path) => path,
         }
     }
 }

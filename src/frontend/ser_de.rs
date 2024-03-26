@@ -2,7 +2,7 @@ use std::{path::PathBuf, rc::Rc};
 
 use serde::{de::{SeqAccess, Visitor}, Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::{search::SimplifiedSearchOptions, DirChild, PitouDrive, PitouDriveKind, PitouFile, PitouFileFilter, PitouFileMetadata, PitouFilePath};
+use crate::{search::SimplifiedSearchOptions, GeneralFolder, PitouDrive, PitouDriveKind, PitouFile, PitouFileFilter, PitouFileMetadata, PitouFilePath, PitouTrashItem, PitouTrashItemMetadata};
 
 use super::extra::DirChildren;
 
@@ -150,5 +150,44 @@ impl Serialize for SimplifiedSearchOptions {
             max_finds: self.max_finds,
             case_sensitive: self.case_sensitive,
         }.serialize(sz)
+    }
+}
+
+impl<'d> Deserialize<'d> for PitouTrashItem {
+    fn deserialize<D: Deserializer<'d>>(dz: D) -> Result<Self, D::Error> {
+        #[derive(Deserialize)]
+        struct PitouTrashItem {
+            original_path: PitouFilePath,
+            metadata: PitouTrashItemMetadata,
+        }
+
+        let PitouTrashItem { original_path, metadata } = PitouTrashItem::deserialize(dz)?;
+        Ok(Self { original_path, metadata })
+    }
+}
+
+
+impl<'d> Deserialize<'d> for GeneralFolder {
+    fn deserialize<D: Deserializer<'d>>(dz: D) -> Result<Self, D::Error> {
+        #[derive(Deserialize)]
+        enum GeneralFolder {
+            DocumentsFolder(PitouFilePath),
+            AudiosFolder(PitouFilePath),
+            PicturesFolder(PitouFilePath),
+            VideosFolder(PitouFilePath),
+            DesktopFolder(PitouFilePath),
+            DownloadsFolder(PitouFilePath),
+        }
+
+        let res = match GeneralFolder::deserialize(dz)? {
+            GeneralFolder::DocumentsFolder(path) => Self::DocumentsFolder(path),
+            GeneralFolder::AudiosFolder(path) => Self::AudiosFolder(path),
+            GeneralFolder::PicturesFolder(path) => Self::PicturesFolder(path),
+            GeneralFolder::VideosFolder(path) => Self::VideosFolder(path),
+            GeneralFolder::DesktopFolder(path) => Self::DesktopFolder(path),
+            GeneralFolder::DownloadsFolder(path) => Self::DownloadsFolder(path),
+        };
+
+        Ok(res)
     }
 }

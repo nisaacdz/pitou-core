@@ -1,7 +1,7 @@
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::{path::PathBuf, rc::Rc};
 
-use crate::{search::SimplifiedSearchOptions, PitouDrive, PitouDriveKind, PitouFile, PitouFileFilter, PitouFileMetadata, PitouFilePath};
+use crate::{search::SimplifiedSearchOptions, GeneralFolder, PitouDrive, PitouDriveKind, PitouFile, PitouFileFilter, PitouFileMetadata, PitouFilePath, PitouTrashItem, PitouTrashItemMetadata};
 
 const BMS: u8 = b'\\';
 const FMS: u8 = b'/';
@@ -141,5 +141,44 @@ impl<'d> Deserialize<'d> for SimplifiedSearchOptions {
             max_finds,
         };
         Ok(res)
+    }
+}
+
+impl Serialize for PitouTrashItem {
+    fn serialize<S: Serializer>(&self, sz: S) -> Result<S::Ok, S::Error> {
+        #[derive(Serialize)]
+        struct PitouTrashItem<'a> {
+            original_path: &'a PitouFilePath,
+            metadata: &'a PitouTrashItemMetadata,
+        }
+
+        PitouTrashItem {
+            original_path: &self.original_path,
+            metadata: &self.metadata,
+        }.serialize(sz)
+    }
+}
+
+
+impl Serialize for GeneralFolder {
+    fn serialize<S: Serializer>(&self, sz: S) -> Result<S::Ok, S::Error> {
+        #[derive(Serialize)]
+        enum GeneralFolder<'a> {
+            DocumentsFolder(&'a PitouFilePath),
+            AudiosFolder(&'a PitouFilePath),
+            PicturesFolder(&'a PitouFilePath),
+            VideosFolder(&'a PitouFilePath),
+            DesktopFolder(&'a PitouFilePath),
+            DownloadsFolder(&'a PitouFilePath),
+        }
+
+        match self {
+            Self::DocumentsFolder(path) => GeneralFolder::DocumentsFolder(path),
+            Self::AudiosFolder(path) => GeneralFolder::AudiosFolder(path),
+            Self::PicturesFolder(path) => GeneralFolder::PicturesFolder(path),
+            Self::VideosFolder(path) => GeneralFolder::VideosFolder(path),
+            Self::DesktopFolder(path) => GeneralFolder::DesktopFolder(path),
+            Self::DownloadsFolder(path) => GeneralFolder::DownloadsFolder(path),
+        }.serialize(sz)
     }
 }
