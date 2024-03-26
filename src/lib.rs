@@ -112,7 +112,6 @@ impl PitouFileMetadata {
     }
 }
 
-#[derive(Serialize, Deserialize)]
 pub struct PitouDrive {
     pub name: String,
     pub mount_point: PitouFilePath,
@@ -135,7 +134,6 @@ pub enum PitouDriveKind {
     Unknown,
 }
 
-#[derive(Serialize, Deserialize)]
 pub struct PitouFile {
     pub path: PitouFilePath,
     pub metadata: Option<PitouFileMetadata>,
@@ -459,4 +457,10 @@ impl Default for AppSettings {
             items_zoom: 1.0,
         }
     }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct DirChild {
+    name: String,
+    metadata: Option<PitouFileMetadata>,
 }

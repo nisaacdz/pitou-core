@@ -1,8 +1,77 @@
-use crate::{
-    search::{SearchOptions, SearchType},
-    PitouFile, PitouFileFilter,
-};
-use std::{path::PathBuf, sync::Arc};
+use std::{path::PathBuf, rc::Rc, sync::Arc};
+
+use regex::Regex;
+use serde::{Deserialize, Serialize};
+
+use crate::{search::SimplifiedSearchOptions, PitouFile, PitouFileFilter};
+
+impl SimplifiedSearchOptions {
+    pub fn try_into(self) -> Option<SearchOptions> {
+        if let Some(search_type) = SearchType::parse_regex(self.search_kind, self.input) {
+            let obj = SearchOptions {
+                search_dir: self.search_dir,
+                filter: self.filter,
+                case_sensitive: self.case_sensitive,
+                hardware_accelerate: self.hardware_accelerate,
+                skip_errors: self.skip_errors,
+                depth: self.depth,
+                max_finds: self.max_finds,
+                search_type: search_type,
+            };
+            Some(obj)
+        } else {
+            None
+        }
+    }
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub enum SearchType {
+    #[serde(with = "serde_regex")]
+    Regex(Regex),
+    MatchBegining(String),
+    MatchMiddle(String),
+    MatchEnding(String),
+}
+
+impl SearchType {
+    pub(crate) fn parse_regex(search_kind: u8, search_key: String) -> Option<Self> {
+        match search_kind {
+            0 => Some(SearchType::MatchBegining(search_key)),
+            1 => Some(SearchType::MatchEnding(search_key)),
+            2 => Some(SearchType::MatchMiddle(search_key)),
+            _ => regex::Regex::new(&search_key)
+                .map(|r| SearchType::Regex(r))
+                .ok(),
+        }
+    }
+}
+
+pub struct SearchOptions {
+    pub(crate) search_dir: Rc<PitouFile>,
+    pub(crate) hardware_accelerate: bool,
+    pub(crate) filter: PitouFileFilter,
+    pub(crate) case_sensitive: bool,
+    pub(crate) depth: u8,
+    pub(crate) search_type: SearchType,
+    pub(crate) skip_errors: bool,
+    pub(crate) max_finds: usize,
+}
+
+impl SearchOptions {
+    pub fn new(search_dir: Rc<PitouFile>, key: String) -> Self {
+        Self {
+            search_dir,
+            filter: PitouFileFilter::new(),
+            hardware_accelerate: false,
+            case_sensitive: true,
+            depth: 6,
+            search_type: SearchType::MatchMiddle(key),
+            skip_errors: true,
+            max_finds: usize::MAX,
+        }
+    }
+}
 
 impl SearchType {
     pub(crate) fn matches(&self, input: &str, sensitive: bool) -> bool {

@@ -1,8 +1,5 @@
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use std::{
-    path::{self, PathBuf},
-    rc::Rc,
-};
+use std::rc::Rc;
 
 use crate::{PitouFile, PitouFilePath, PitouFileSize};
 
@@ -66,59 +63,3 @@ impl<'d> Deserialize<'d> for PitouFileSize {
     }
 }
 
-impl Serialize for PitouFilePath {
-    fn serialize<S: Serializer>(&self, sz: S) -> Result<S::Ok, S::Error> {
-        serialize_pathbuf(&self.path, sz)
-    }
-}
-
-impl<'d> Deserialize<'d> for PitouFilePath {
-    fn deserialize<D: Deserializer<'d>>(dz: D) -> Result<Self, D::Error> {
-        let path = deserialize_pathbuf(dz)?;
-        Ok(Self { path })
-    }
-}
-
-#[inline]
-fn serialize_pathbuf<S: Serializer>(path: &PathBuf, sz: S) -> Result<S::Ok, S::Error> {
-    use path::MAIN_SEPARATOR as ms;
-    let path = path
-        .as_os_str()
-        .to_str()
-        .unwrap()
-        .chars()
-        .map(|c| if c == ms { 28 as char } else { c })
-        .collect::<String>();
-    sz.collect_str(&path)
-}
-
-#[inline]
-fn deserialize_pathbuf<'d, D: Deserializer<'d>>(dz: D) -> Result<PathBuf, D::Error> {
-    use path::MAIN_SEPARATOR as ms;
-    let mut res = String::deserialize(dz)?;
-    for bc in unsafe { res.as_bytes_mut() } {
-        if *bc == 28 {
-            *bc = ms as u8;
-        }
-    }
-    if res.len() == 0 {
-        return Ok(PathBuf::from(res))
-    } else if res.len() == 1 {
-        res.push(':');
-        res.push(ms);
-    } else if res.len() == 2 && res.as_bytes()[1] == b':' {
-        res.push(ms);
-    } else if res.as_bytes()[1] == ms as u8 {
-        res.insert(1, ':');
-    }
-    Ok(PathBuf::from(res))
-}
-
-pub fn serialize<S: Serializer>(item: &Rc<PitouFile>, sz: S) -> Result<S::Ok, S::Error> {
-    serialize_pathbuf(&item.path.path, sz)
-}
-
-pub fn deserialize<'d, D: Deserializer<'d>>(dz: D) -> Result<Rc<PitouFile>, D::Error> {
-    let item = PitouFile::deserialize(dz)?;
-    Ok(Rc::new(item))
-}

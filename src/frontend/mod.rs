@@ -7,12 +7,10 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    search::SimplifiedSearchOptions, AppMenu, AppSettings, ColorTheme, GeneralFolder, PitouDrive,
-    PitouFile, PitouTrashItem,
-};
+use crate::{search::SimplifiedSearchOptions, AppMenu, AppSettings, ColorTheme, GeneralFolder, PitouDrive, PitouFile, PitouTrashItem};
 
 use self::extra::FolderTracker;
+pub mod ser_de;
 
 pub mod extra;
 
