@@ -416,7 +416,7 @@ impl GeneralFolder {
         match self {
             GeneralFolder::DocumentsFolder(_) => String::from("Documents"),
             GeneralFolder::AudiosFolder(_) => String::from("Audios"),
-            GeneralFolder::PicturesFolder(_) => String::from("pictures"),
+            GeneralFolder::PicturesFolder(_) => String::from("Pictures"),
             GeneralFolder::VideosFolder(_) => String::from("Videos"),
             GeneralFolder::DesktopFolder(_) => String::from("Desktop"),
             GeneralFolder::DownloadsFolder(_) => String::from("Downloads"),
@@ -446,8 +446,7 @@ pub enum ItemsView {
 pub struct AppSettings {
     pub refresh_rate: u8,
     pub show_extensions: bool,
-    pub single_click_opens: bool,
-    pub hide_impermisible: bool,
+    pub hide_system_files: bool,
     pub show_thumbnails: bool,
     pub items_view: ItemsView,
     pub show_parents: bool,
@@ -459,8 +458,7 @@ impl Default for AppSettings {
         Self {
             refresh_rate: 250,
             show_extensions: true,
-            single_click_opens: false,
-            hide_impermisible: true,
+            hide_system_files: true,
             show_thumbnails: false,
             items_view: ItemsView::Rows,
             show_parents: false,

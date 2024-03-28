@@ -7,7 +7,7 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
-use crate::{search::SimplifiedSearchOptions, AppMenu, AppSettings, ColorTheme, GeneralFolder, PitouDrive, PitouFile, PitouTrashItem};
+use crate::{search::SimplifiedSearchOptions, AppMenu, AppSettings, ColorTheme, GeneralFolder, ItemsView, PitouDrive, PitouFile, PitouTrashItem};
 
 use self::extra::FolderTracker;
 pub mod ser_de;
@@ -185,3 +185,145 @@ impl PartialEq for VWrapper {
 }
 
 impl Eq for VWrapper {}
+
+#[derive(Clone)]
+pub struct AllTabsCtx {
+    pub all_tabs: Rc<RefCell<Vec<Rc<TabCtx>>>>,
+    pub active_tab: usize,
+}
+
+
+impl AllTabsCtx {
+    pub fn default() -> Self {
+        let active_tab = Rc::new(TabCtx::default());
+        active_tab.update_cur_menu(AppMenu::Explorer);
+        let all_tabs = Rc::new(RefCell::new(vec![active_tab]));
+        Self {
+            all_tabs,
+            active_tab: 0,
+        }
+    }
+
+    pub fn add_tab(mut self) -> Self {
+        let mut all_tabs = self.all_tabs.borrow_mut();
+        let next_idx = all_tabs.len();
+        all_tabs.push(Rc::new(TabCtx::default()));
+        std::mem::drop(all_tabs);
+        self.active_tab = next_idx;
+        self
+    }
+
+    pub fn change_tab(mut self, idx: usize) -> Self {
+        self.active_tab = idx;
+        self
+    }
+
+    pub fn remove_tab(mut self, idx: usize) -> Option<Self> {
+        let mut all_tabs = self.all_tabs.borrow_mut();
+        if all_tabs.len() <= 1 {
+            return None;
+        }
+        all_tabs.remove(idx);
+        std::mem::drop(all_tabs);
+        if idx <= self.active_tab {
+            if self.active_tab != 0 {
+                self.active_tab -= 1;
+            }
+        }
+        Some(self)
+    }
+
+    pub fn current_tab(&self) -> Rc<TabCtx> {
+        self.all_tabs.borrow()[self.active_tab].clone()
+    }
+
+    pub fn change_menu(self, menu: AppMenu) -> Self {
+        let current_tab = self.current_tab();
+        *current_tab.current_menu.borrow_mut() = menu;
+        self
+    }
+}
+
+
+#[derive(Clone)]
+pub struct ApplicationContext {
+    pub gen_ctx: Rc<RefCell<GenCtx>>,
+    pub active_tab: Rc<TabCtx>,
+    pub static_data: Rc<StaticData>,
+}
+
+impl PartialEq for ApplicationContext {
+    fn eq(&self, _: &Self) -> bool {
+        false
+    }
+}
+
+impl ApplicationContext {
+    pub fn new(gen_ctx: Rc<RefCell<GenCtx>>, active_tab: Rc<TabCtx>, static_data: Rc<StaticData>) -> Self {
+        Self {
+            gen_ctx,
+            active_tab,
+            static_data,
+        }
+    }
+
+    pub fn update_color_theme(&self, new_theme: ColorTheme) {
+        self.gen_ctx.borrow_mut().color_theme = new_theme;
+    }
+
+    pub fn update_refresh_rate(&self, new_rate: u8) {
+        self.gen_ctx.borrow_mut().app_settings.refresh_rate = new_rate;
+    }
+
+    pub fn toggle_show_extensions(&self, new_val: bool) {
+        self.gen_ctx.borrow_mut().app_settings.show_extensions = new_val;
+    }
+
+    pub fn toggle_hide_system_files(&self, new_val: bool) {
+        self.gen_ctx.borrow_mut().app_settings.hide_system_files = new_val;
+    }
+
+    pub fn toggle_show_thumbnails(&self, new_val: bool) {
+        self.gen_ctx.borrow_mut().app_settings.show_thumbnails = new_val;
+    }
+
+    pub fn toggle_show_parents(&self, new_val: bool) {
+        self.gen_ctx.borrow_mut().app_settings.show_parents = new_val;
+    }
+
+    pub fn update_items_view(&self, new_view: ItemsView) {
+        self.gen_ctx.borrow_mut().app_settings.items_view = new_view;
+    }
+
+    pub fn update_zoom_value(&self, new_val: f32) {
+        self.gen_ctx.borrow_mut().app_settings.items_zoom = new_val;
+    }
+
+    pub fn hide_system_files(&self) -> bool {
+        self.gen_ctx.borrow().app_settings.hide_system_files
+    }
+
+    pub fn refresh_rate(&self) -> u8 {
+        self.gen_ctx.borrow().app_settings.refresh_rate
+    }
+
+    pub fn show_thumbnails(&self) -> bool {
+        self.gen_ctx.borrow().app_settings.show_thumbnails
+    }
+
+    pub fn items_view(&self) -> ItemsView {
+        self.gen_ctx.borrow().app_settings.items_view
+    }
+
+    pub fn items_zoom(&self) -> f32 {
+        self.gen_ctx.borrow().app_settings.items_zoom
+    }
+
+    pub fn show_parents(&self) -> bool {
+        self.gen_ctx.borrow().app_settings.show_parents
+    }
+
+    pub fn show_extensions(&self) -> bool {
+        self.gen_ctx.borrow().app_settings.show_extensions
+    }
+}

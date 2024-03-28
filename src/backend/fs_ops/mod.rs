@@ -80,6 +80,10 @@ pub fn open(file: PitouFilePath) -> std::io::Result<()> {
     open::that_detached(&file.path)
 }
 
+pub fn open_with(file: PitouFilePath) -> Result<(), ()> {
+    open_with::open_with(file.path).map_err(|_| ())
+}
+
 pub fn share(_file: PitouFilePath) -> std::io::Result<()> {
     todo!()
 }
