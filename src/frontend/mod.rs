@@ -24,6 +24,25 @@ pub struct TabCtx {
 }
 
 impl TabCtx {
+    pub fn display_name(&self) -> String {
+        let menu = *self.current_menu.borrow();
+        match menu {
+            AppMenu::Home => "Home".to_owned(),
+            AppMenu::Explorer => {
+                match &*self.folder_tracker.borrow() {
+                    Some(v) => v.current().name().to_owned(),
+                    None => "".to_owned(),
+                }
+            },
+            AppMenu::Trash => "Recycle Bin".to_owned(),
+            AppMenu::Favorites => "Favorites".to_owned(),
+            AppMenu::Search => "Advanced Search".to_owned(),
+            AppMenu::Locked => "Vault".to_owned(),
+            AppMenu::Recents => "Recent Files".to_owned(),
+            AppMenu::Cloud => "Cloud Storage".to_owned(),
+            AppMenu::Settings => "Settings".to_owned(),
+        }
+    }
     pub fn current_dir(&self) -> Option<Rc<PitouFile>> {
         self.folder_tracker.borrow().as_ref().map(|v| v.current())
     }

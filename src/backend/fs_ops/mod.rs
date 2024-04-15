@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use crate::{
     GeneralFolder, PitouDateTime, PitouDrive, PitouFile, PitouFileFilter, PitouFilePath,
-    PitouFileSort, PitouTrashItem, PitouTrashItemMetadata,
+    PitouFileSize, PitouFileSort, PitouTrashItem, PitouTrashItemMetadata,
 };
 use chrono::DateTime;
 use trash::TrashItem;
@@ -70,7 +70,13 @@ pub mod clipboard {
     }
 }
 
-pub async fn delete(items: Vec<PitouFilePath>) {
+pub fn drives() -> Vec<PitouDrive> {
+    let mut drives = PitouDrive::get_drives();
+    drives.sort_unstable_by(|a, b| a.mount_point.name().cmp(b.mount_point.name()));
+    drives
+}
+
+pub fn delete(items: Vec<PitouFilePath>) {
     for item in items {
         tokio::spawn(async move { trash::delete(&item.path) });
     }
@@ -198,7 +204,7 @@ pub fn general_folders() -> Vec<GeneralFolder> {
 
 pub fn trash_items() -> Option<Vec<PitouTrashItem>> {
     trash::os_limited::list()
-        .map(|v| v.into_iter().map(|u| u.into()).collect())
+        .map(|v| v.into_iter().filter_map(|u| u.try_into().ok()).collect())
         .ok()
 }
 
@@ -210,16 +216,21 @@ pub fn purge_trash(_items: impl Iterator<Item = PitouTrashItemMetadata>) {
     todo!()
 }
 
-impl From<TrashItem> for PitouTrashItem {
-    fn from(
-        TrashItem {
+impl TryFrom<TrashItem> for PitouTrashItem {
+    type Error = trash::Error;
+    fn try_from(item: TrashItem) -> Result<Self, Self::Error> {
+        let (size, is_dir) = match trash::os_limited::metadata(&item)?.size {
+            trash::TrashItemSize::Bytes(val) => (val, false),
+            trash::TrashItemSize::Entries(val) => (val as u64, true),
+        };
+
+        let TrashItem {
             id,
-            name,
-            mut original_parent,
+            name: _,
+            original_parent,
             time_deleted,
-        }: TrashItem,
-    ) -> Self {
-        original_parent.push(name);
+        } = item;
+
         let metadata = PitouTrashItemMetadata {
             id: id.into_string().unwrap(),
             deleted: PitouDateTime {
@@ -227,11 +238,13 @@ impl From<TrashItem> for PitouTrashItem {
                     .unwrap()
                     .naive_utc(),
             },
+            is_dir,
+            size: PitouFileSize::new(size),
         };
 
-        PitouTrashItem {
+        Ok(PitouTrashItem {
             original_path: PitouFilePath::from_pathbuf(original_parent),
             metadata,
-        }
+        })
     }
 }

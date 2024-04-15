@@ -180,12 +180,17 @@ impl PitouTrashItem {
     pub fn name(&self) -> &str {
         self.original_path.name()
     }
+    pub fn is_dir(&self) -> bool {
+        self.metadata.is_dir
+    }
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct PitouTrashItemMetadata {
     pub id: String,
     pub deleted: PitouDateTime,
+    pub size: PitouFileSize,
+    pub is_dir: bool,
 }
 
 #[derive(Clone, Copy, Serialize, Deserialize)]
@@ -338,7 +343,7 @@ impl ColorTheme {
         foreground1: Color(220, 220, 220, 255),
         foreground2: Color(180, 180, 180, 255),
         spare1: Color(45, 45, 45, 255),
-        spare2: Color(100, 100, 100, 255),
+        spare2: Color(120, 200, 255, 255),
     };
 
     pub const GPT_DARK: Self = Self {
@@ -368,6 +373,7 @@ impl ColorTheme {
         spare2: Color(255, 165, 0, 255),
     };
 
+    
     pub const GEM_DARK: Self = Self {
         background1: Color(50, 50, 50, 255),
         background2: Color(30, 30, 30, 255),

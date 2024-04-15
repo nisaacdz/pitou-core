@@ -1,7 +1,6 @@
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use std::rc::Rc;
 
-use crate::{PitouFile, PitouFilePath, PitouFileSize};
+use crate::PitouFileSize;
 
 /* *
 impl Serialize for TabCtx {
