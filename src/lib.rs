@@ -3,10 +3,11 @@ use serde::{Deserialize, Serialize};
 use std::{cmp::Reverse, path::PathBuf};
 mod extra;
 
-#[cfg(feature = "backend")]
-pub mod backend;
 #[cfg(feature = "frontend")]
 pub mod frontend;
+
+#[cfg(feature = "backend")]
+pub mod backend;
 
 pub mod collections;
 pub mod msg;
