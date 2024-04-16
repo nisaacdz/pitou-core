@@ -48,7 +48,7 @@ impl PitouFilePath {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Copy)]
 pub struct PitouDateTime {
     pub datetime: NaiveDateTime,
 }
@@ -178,6 +178,12 @@ pub struct PitouTrashItem {
 }
 
 impl PitouTrashItem {
+    pub fn path(&self) -> &PitouFilePath {
+        &self.original_path
+    }
+    pub fn metadata(&self) -> &PitouTrashItemMetadata {
+        &self.metadata
+    }
     pub fn name(&self) -> &str {
         self.original_path.name()
     }
@@ -325,8 +331,8 @@ impl ColorTheme {
         background2: Color(180, 180, 180, 255),
         foreground1: Color(50, 50, 50, 255),
         foreground2: Color(80, 80, 80, 255),
-        spare1: Color(215, 215, 215, 255),
-        spare2: Color(150, 150, 150, 255),
+        spare1: Color(80, 80, 80, 255),
+        spare2: Color(0, 230, 125, 255),
     };
 
     pub const DEFAULT_DARK: Self = Self {

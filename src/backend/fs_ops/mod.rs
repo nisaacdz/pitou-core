@@ -226,10 +226,12 @@ impl TryFrom<TrashItem> for PitouTrashItem {
 
         let TrashItem {
             id,
-            name: _,
-            original_parent,
+            name,
+            mut original_parent,
             time_deleted,
         } = item;
+
+        original_parent.push(name);
 
         let metadata = PitouTrashItemMetadata {
             id: id.into_string().unwrap(),
