@@ -154,6 +154,7 @@ impl PitouFile {
             Some(metadata) => matches!(metadata.kind, PitouFileKind::Directory),
         }
     }
+    
     pub fn is_link(&self) -> bool {
         match &self.metadata {
             None => false,
@@ -169,6 +170,12 @@ impl PitouFile {
 
     pub fn name(&self) -> &str {
         self.path.name()
+    }
+
+    pub fn name_without_extension(&self) -> &str {
+        let name = self.name();
+        let end = (0..name.len()).rev().find(|&v| name.as_bytes()[v] == b'.').unwrap_or(name.len());
+        &name[1..end]
     }
 }
 
@@ -326,7 +333,16 @@ pub struct ColorTheme {
 }
 
 impl ColorTheme {
-    pub const RAMBO: Self = Self {
+    pub const DEFAULT_DARK: Self = Self {
+        background1: Color(60, 60, 60, 255),
+        background2: Color(105, 105, 105, 255),
+        foreground1: Color(240, 240, 240, 255),
+        foreground2: Color(100, 200, 150, 255),
+        spare1: Color(40, 40, 40, 255),
+        spare2: Color(185, 210, 235, 255),
+    };
+
+    pub const DEFAULT_LIGHT: Self = Self {
         background1: Color(230, 230, 230, 255),
         background2: Color(180, 180, 180, 255),
         foreground1: Color(50, 50, 50, 255),
@@ -334,52 +350,6 @@ impl ColorTheme {
         spare1: Color(80, 80, 80, 255),
         spare2: Color(0, 230, 125, 255),
     };
-
-    pub const DEFAULT_DARK: Self = Self {
-        background1: Color(25, 25, 112, 255),
-        background2: Color(0, 0, 51, 255),
-        foreground1: Color(255, 255, 255, 255),
-        foreground2: Color(192, 192, 192, 255),
-        spare1: Color(153, 50, 204, 255),
-        spare2: Color(255, 0, 0, 255),
-    };
-
-    pub const POLISH: Self = Self {
-        background1: Color(30, 30, 30, 255),
-        background2: Color(60, 60, 60, 255),
-        foreground1: Color(220, 220, 220, 255),
-        foreground2: Color(180, 180, 180, 255),
-        spare1: Color(45, 45, 45, 255),
-        spare2: Color(120, 200, 255, 255),
-    };
-
-    pub const GPT_DARK: Self = Self {
-        background1: Color(50, 50, 50, 255),
-        background2: Color(105, 105, 105, 255),
-        foreground1: Color(240, 240, 240, 255),
-        foreground2: Color(255, 255, 255, 255),
-        spare1: Color(0, 0, 0, 255),
-        spare2: Color(185, 210, 235, 255),
-    };
-
-    pub const OCEAN_BLUE: Self = Self {
-        background1: Color(100, 200, 255, 255),
-        background2: Color(50, 100, 200, 255),
-        foreground1: Color(255, 255, 255, 255),
-        foreground2: Color(245, 225, 180, 255),
-        spare1: Color(25, 50, 100, 255),
-        spare2: Color(150, 15, 50, 255),
-    };
-
-    pub const GEM_LIGHT: Self = Self {
-        background1: Color(240, 240, 240, 255),
-        background2: Color(200, 200, 200, 255),
-        foreground1: Color(50, 50, 50, 255),
-        foreground2: Color(0, 128, 128, 255),
-        spare1: Color(170, 170, 170, 255),
-        spare2: Color(255, 165, 0, 255),
-    };
-
     
     pub const GEM_DARK: Self = Self {
         background1: Color(50, 50, 50, 255),
@@ -389,6 +359,16 @@ impl ColorTheme {
         spare1: Color(100, 100, 100, 255),
         spare2: Color(255, 192, 203, 255),
     };
+
+    pub const POLISH_DARK: Self = Self {
+        background1: Color(30, 30, 30, 255),
+        background2: Color(60, 60, 60, 255),
+        foreground1: Color(220, 220, 220, 255),
+        foreground2: Color(180, 180, 180, 255),
+        spare1: Color(45, 45, 45, 255),
+        spare2: Color(120, 180, 240, 255),
+    };
+
 }
 
 #[derive(Clone, Copy, PartialEq, Serialize, Deserialize)]
@@ -473,7 +453,7 @@ impl Default for AppSettings {
             show_extensions: true,
             hide_system_files: true,
             show_thumbnails: false,
-            items_view: ItemsView::Rows,
+            items_view: ItemsView::Tiles,
             show_parents: false,
             items_zoom: 1.0,
         }

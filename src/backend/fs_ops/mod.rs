@@ -5,6 +5,7 @@ use crate::{
     PitouFileSize, PitouFileSort, PitouTrashItem, PitouTrashItemMetadata,
 };
 use chrono::DateTime;
+use fs_extra::dir::CopyOptions;
 use trash::TrashItem;
 
 pub mod drive;
@@ -14,7 +15,7 @@ pub mod clipboard {
 
     use tokio::sync::Mutex;
 
-    enum ClipboardItem {
+    pub(super) enum ClipboardItem {
         Copied(Arc<Vec<PitouFile>>),
         Cut(Arc<Vec<PitouFile>>),
     }
@@ -28,14 +29,14 @@ pub mod clipboard {
         CLIPBOARD.get_or_init(|| Mutex::new(Vec::new()))
     }
 
-    pub async fn copy(files: Vec<PitouFile>) {
+    pub(super) async fn copy(files: Vec<PitouFile>) {
         get_clipboard()
             .lock()
             .await
             .push(ClipboardItem::Copied(Arc::new(files)))
     }
 
-    pub async fn cut(files: Vec<PitouFile>) {
+    pub(super) async fn cut(files: Vec<PitouFile>) {
         get_clipboard()
             .lock()
             .await
@@ -54,19 +55,19 @@ pub mod clipboard {
         get_clipboard().lock().await.is_empty()
     }
 
-    pub async fn paste() -> Option<Arc<Vec<PitouFile>>> {
+    pub(super) async fn paste() -> Option<ClipboardItem> {
         let cb = get_clipboard();
         let mut guard = cb.lock().await;
-        let items = match guard.pop() {
+        let items = guard.pop();
+        match &items {
+            None => (),
             Some(v) => match v {
-                ClipboardItem::Copied(vals) => vals,
-                ClipboardItem::Cut(vals) => vals,
-            },
-            None => return None,
-        };
-        guard.push(ClipboardItem::Copied(items.clone()));
+                ClipboardItem::Copied(u) => guard.push(ClipboardItem::Copied(u.clone())),
+                ClipboardItem::Cut(u) => guard.push(ClipboardItem::Copied(u.clone())),
+            }
+        }
         std::mem::drop(guard);
-        Some(items)
+        items
     }
 }
 
@@ -76,9 +77,27 @@ pub fn drives() -> Vec<PitouDrive> {
     drives
 }
 
-pub fn delete(items: Vec<PitouFilePath>) {
+pub fn delete(items: Vec<PitouFile>) {
     for item in items {
-        tokio::spawn(async move { trash::delete(&item.path) });
+        tokio::spawn(async move { trash::delete(&item.path.path) });
+    }
+}
+
+pub async fn copy(items: Vec<PitouFile>) {
+    clipboard::copy(items).await
+}
+
+pub async fn cut(items: Vec<PitouFile>) {
+    clipboard::cut(items).await
+}
+
+pub async fn paste(dir: PitouFile) {
+    match clipboard::paste().await {
+        None => (),
+        Some(v) => match v {
+            clipboard::ClipboardItem::Copied(u) => { fs_extra::copy_items(&*u, &dir, &CopyOptions::new()).ok(); }
+            clipboard::ClipboardItem::Cut(u) => { fs_extra::move_items(&*u, &dir, &CopyOptions::new()).ok(); },
+        }
     }
 }
 

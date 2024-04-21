@@ -77,3 +77,9 @@ impl PartialEq for PitouFile {
         &self.path == &other.path
     }
 }
+
+impl AsRef<std::path::Path> for PitouFile {
+    fn as_ref(&self) -> &std::path::Path {
+        &self.path.path
+    }
+}

@@ -43,8 +43,30 @@ impl TabCtx {
             AppMenu::Settings => "Settings".to_owned(),
         }
     }
+
+    pub fn reset_current_files(&self) {
+        *self.dir_children.borrow_mut() = None;
+        *self.dir_siblings.borrow_mut() = None;
+    }
+
+    pub fn can_navigate_backward(&self) -> bool {
+        self.folder_tracker.borrow().as_ref().map(|v| v.prev().is_some()).unwrap_or(false)
+    }
+
+    pub fn can_navigate_forward(&self) -> bool {
+        self.folder_tracker.borrow().as_ref().map(|v| v.next().is_some()).unwrap_or(false)
+    }
+
     pub fn current_dir(&self) -> Option<Rc<PitouFile>> {
         self.folder_tracker.borrow().as_ref().map(|v| v.current())
+    }
+
+    pub fn navigate_backward(&self) {
+        self.folder_tracker.borrow_mut().as_mut().map(|v| v.go_backward());
+    }
+
+    pub fn navigate_forward(&self) {
+        self.folder_tracker.borrow_mut().as_mut().map(|v| v.go_forward());
     }
 
     pub fn update_cur_dir(&self, current_dir: Option<Rc<PitouFile>>) {
@@ -112,20 +134,46 @@ impl TabCtx {
 }
 
 pub struct StaticData {
-    pub drives: RefCell<Rc<Vec<Rc<PitouDrive>>>>,
+    pub drives: RefCell<Option<Rc<Vec<Rc<PitouDrive>>>>>,
     pub selections: RefCell<HashSet<VWrapper>>,
+    pub trash_items: RefCell<Option<Rc<Vec<Rc<PitouTrashItem>>>>>,
 }
 
 impl StaticData {
     pub fn new() -> Self {
         Self {
-            drives: RefCell::new(Rc::new(Vec::new())),
+            drives: RefCell::new(None),
             selections: RefCell::new(HashSet::new()),
+            trash_items: RefCell::new(None)
         }
     }
 
+    pub fn selected_items(&self) -> Vec<VWrapper> {
+        self.selections.borrow().iter().map(|v| v.clone()).collect()
+    }
+
+    pub fn update_trash_items(&self, items: Option<Rc<Vec<Rc<PitouTrashItem>>>>) {
+        *self.trash_items.borrow_mut() = items;
+    }
+
+    pub fn trash_items(&self) -> Option<Rc<Vec<Rc<PitouTrashItem>>>> {
+        (*self.trash_items.borrow()).clone()
+    }
+
+    pub fn reset_trash_items(&self) {
+        *self.trash_items.borrow_mut() = None;
+    }
+
+    pub fn no_trash_items(&self) -> bool {
+        self.trash_items.borrow().is_none()
+    }
+
+    pub fn reset_drives(&self) {
+        *self.drives.borrow_mut() = None;
+    }
+
     pub fn update_drives(&self, drives: Rc<Vec<Rc<PitouDrive>>>) {
-        *self.drives.borrow_mut() = drives;
+        *self.drives.borrow_mut() = Some(drives);
     }
 
     pub fn clear_selection(&self, item: VWrapper) {
@@ -158,12 +206,13 @@ impl Default for GenCtx {
         Self {
             app_width: 1366,
             app_height: 768,
-            color_theme: ColorTheme::GPT_DARK,
+            color_theme: ColorTheme::DEFAULT_DARK,
             app_settings: AppSettings::default(),
         }
     }
 }
 
+#[derive(Clone)]
 pub enum VWrapper {
     Drive(Rc<PitouDrive>),
     GenFolder(Rc<GeneralFolder>),
@@ -215,7 +264,6 @@ pub struct AllTabsCtx {
 impl AllTabsCtx {
     pub fn default() -> Self {
         let active_tab = Rc::new(TabCtx::default());
-        active_tab.update_cur_menu(AppMenu::Explorer);
         let all_tabs = Rc::new(RefCell::new(vec![active_tab]));
         Self {
             all_tabs,
@@ -263,12 +311,29 @@ impl AllTabsCtx {
     }
 }
 
+#[derive(Clone, Copy, PartialEq)]
+enum State {
+    State1, State2
+}
+
+#[derive(PartialEq)]
+pub struct RefresherState {
+    state: RefCell<State>,
+}
+
+impl RefresherState {
+    pub fn default() -> Self {
+        Self { state: RefCell::new(State::State1) }
+    }
+}
+
 
 #[derive(Clone)]
 pub struct ApplicationContext {
     pub gen_ctx: Rc<RefCell<GenCtx>>,
     pub active_tab: Rc<TabCtx>,
     pub static_data: Rc<StaticData>,
+    pub refresher_state: Rc<RefresherState>,
 }
 
 impl PartialEq for ApplicationContext {
@@ -283,7 +348,42 @@ impl ApplicationContext {
             gen_ctx,
             active_tab,
             static_data,
+            refresher_state: Rc::new(RefresherState::default())
         }
+    }
+
+    pub fn can_attempt_delete(&self) -> bool {
+        let selections = self.static_data.selections.borrow();
+        match selections.iter().next() {
+            None => false,
+            Some(v) => match v {
+                VWrapper::Drive(_) => false,
+                VWrapper::GenFolder(_) => false,
+                VWrapper::FirstAncestor(_) => true,
+                VWrapper::FullPath(_) => true,
+                VWrapper::TrashItem(_) => true,
+            }
+        }
+    }
+
+    pub fn refresher_state(&self) -> Rc<RefresherState> {
+        self.refresher_state.clone()
+    }
+
+    pub fn toggle_refresher_state(&self) {
+        let mut state = self.refresher_state.state.borrow_mut();
+        match *state {
+            State::State1 => *state = State::State2,
+            State::State2 => *state = State::State1,
+        }
+    }
+
+    pub fn current_menu(&self) -> AppMenu {
+        *self.active_tab.current_menu.borrow()
+    }
+
+    pub fn color_theme(&self) -> ColorTheme {
+        self.gen_ctx.borrow().color_theme
     }
 
     pub fn update_color_theme(&self, new_theme: ColorTheme) {

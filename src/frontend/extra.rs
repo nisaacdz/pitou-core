@@ -47,7 +47,7 @@ impl FolderTracker {
         self.idx += 1;
     }
 
-    pub fn go_back(&mut self) {
+    pub fn go_backward(&mut self) {
         if self.idx > 0 {
             self.idx -= 1;
         }

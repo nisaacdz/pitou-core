@@ -6,6 +6,17 @@ use crate::{search::SimplifiedSearchOptions, GeneralFolder, PitouDrive, PitouDri
 const BMS: u8 = b'\\';
 const FMS: u8 = b'/';
 
+impl<'d> Deserialize<'d> for PitouFile {
+    fn deserialize<D: Deserializer<'d>>(dz: D) -> Result<Self, D::Error> {
+        let path = PitouFilePath::deserialize(dz)?;
+        let res = PitouFile {
+            path,
+            metadata: None,
+        };
+        Ok(res)
+    }
+}
+
 impl Serialize for PitouFile {
     fn serialize<S: Serializer>(&self, sz: S) -> Result<S::Ok, S::Error> {
         #[derive(Serialize)]

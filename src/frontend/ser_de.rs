@@ -37,6 +37,12 @@ impl<'d> Deserialize<'d> for PitouFile {
     }
 }
 
+impl Serialize for PitouFile {
+    fn serialize<S: Serializer>(&self, sz: S) -> Result<S::Ok, S::Error> {
+        self.path.serialize(sz)
+    }
+}
+
 impl<'d> Deserialize<'d> for PitouFilePath {
     fn deserialize<D: Deserializer<'d>>(dz: D) -> Result<Self, D::Error> {
         let path = deserialize_pathbuf(dz)?;
