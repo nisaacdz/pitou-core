@@ -169,6 +169,21 @@ pub async fn children(
     };
 }
 
+impl PitouFile {
+    pub fn from_pathbuf(path: PathBuf) -> Self {
+        Self {
+            metadata: PitouFileMetadata::attempt(&path),
+            path: path.into(),
+        }
+    }
+}
+
+impl PitouFileMetadata {
+    fn attempt(path: &PathBuf) -> Option<Self> {
+        std::fs::metadata(path).map(|v| v.into()).ok()
+    }
+}
+
 pub async fn siblings(
     mut dir: PitouFilePath,
     filter: PitouFileFilter,

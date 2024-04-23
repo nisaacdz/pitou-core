@@ -133,23 +133,247 @@ impl TabCtx {
     }
 }
 
+pub struct GenFolderWrap {
+    folder: Rc<GeneralFolder>,
+}
+
+impl GenFolderWrap {
+    fn new(folder: Rc<GeneralFolder>) -> Self {
+        Self { folder }
+    }
+}
+
+impl PartialEq for GenFolderWrap {
+    fn eq(&self, other: &Self) -> bool {
+        self.folder.path() == other.folder.path()
+    }
+}
+
+impl Eq for GenFolderWrap {
+
+}
+
+impl Hash for GenFolderWrap {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        state.write(self.folder.path().as_bytes())
+    }
+}
+
+#[derive(Clone)]
+pub struct PitouFileWrap {
+    inner: Rc<PitouFile>,
+}
+
+impl PitouFileWrap {
+    fn new(inner: Rc<PitouFile>) -> Self {
+        Self { inner }
+    }
+}
+
+impl PartialEq for PitouFileWrap {
+    fn eq(&self, other: &Self) -> bool {
+        self.inner.path() == other.inner.path()
+    }
+}
+
+impl Eq for PitouFileWrap {
+    
+}
+
+impl Hash for PitouFileWrap {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        state.write(self.inner.path().as_bytes())
+    }
+}
+
+pub enum Selections {
+    Drives(HashSet<PitouDriveWrap>),
+    FolderEntries(FolderEntrySelections),
+    SearchResults(HashSet<PitouFileWrap>),
+    GeneralFolders(HashSet<GenFolderWrap>),
+    RecentFiles(HashSet<PitouFileWrap>),
+    PinnedFiles(HashSet<PitouFileWrap>),
+    TrashItems(HashSet<PitouTrashItemWrap>),
+}
+
+pub struct PitouDriveWrap {
+    drive: Rc<PitouDrive>,
+}
+
+impl PartialEq for PitouDriveWrap {
+    fn eq(&self, other: &Self) -> bool {
+        self.drive.mount_point() == other.drive.mount_point()
+    }
+}
+
+impl Eq for PitouDriveWrap {
+
+}
+
+impl PitouDriveWrap {
+    fn new(drive: Rc<PitouDrive>) -> Self {
+        Self {
+            drive
+        }
+    }
+}
+
+impl Hash for PitouDriveWrap {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        state.write(self.drive.mount_point().as_bytes())
+    }
+}
+
+#[derive(Clone)]
+pub struct PitouTrashItemWrap {
+    item: Rc<PitouTrashItem>,
+}
+
+impl PitouTrashItemWrap {
+    fn new(item: Rc<PitouTrashItem>) -> Self {
+        Self {
+            item
+        }
+    }
+}
+
+impl PartialEq for PitouTrashItemWrap {
+    fn eq(&self, other: &Self) -> bool {
+        self.item.id() == other.item.id()
+    }
+}
+
+impl Eq for PitouTrashItemWrap {
+
+}
+
+impl Hash for PitouTrashItemWrap {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        state.write(self.item.id().as_bytes())
+    }
+}
+
+struct FolderEntry {
+    item: Rc<PitouFile>
+}
+
+impl FolderEntry {
+    fn new(item: Rc<PitouFile>) -> Self {
+        Self { item }
+    }
+}
+
+impl PartialEq for FolderEntry  {
+    fn eq(&self, other: &Self) -> bool {
+        self.item.name() == other.item.name()
+    }
+}
+
+impl Eq for FolderEntry {
+    
+}
+
+impl Hash for FolderEntry {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        state.write(self.item.name().as_bytes())
+    }
+}
+
+pub struct FolderEntrySelections {
+    items: HashSet<FolderEntry>,
+}
+
 pub struct StaticData {
     pub drives: RefCell<Option<Rc<Vec<Rc<PitouDrive>>>>>,
-    pub selections: RefCell<HashSet<VWrapper>>,
+    pub selections: RefCell<Selections>,
     pub trash_items: RefCell<Option<Rc<Vec<Rc<PitouTrashItem>>>>>,
+    pub gen_dirs: RefCell<Option<Rc<Vec<Rc<GeneralFolder>>>>>,
 }
 
 impl StaticData {
     pub fn new() -> Self {
         Self {
             drives: RefCell::new(None),
-            selections: RefCell::new(HashSet::new()),
-            trash_items: RefCell::new(None)
+            selections: RefCell::new(Selections::Drives(HashSet::new())),
+            trash_items: RefCell::new(None),
+            gen_dirs: RefCell::new(None)
         }
     }
 
-    pub fn selected_items(&self) -> Vec<VWrapper> {
-        self.selections.borrow().iter().map(|v| v.clone()).collect()
+    pub fn can_attempt_delete(&self) -> bool {
+        match &*self.selections.borrow() {
+            Selections::Drives(_) => false,
+            Selections::FolderEntries(fe) => fe.items.len() > 0,
+            Selections::SearchResults(sr) => sr.len() > 0,
+            Selections::GeneralFolders(_) => false,
+            Selections::RecentFiles(rf) => rf.len() > 0,
+            Selections::PinnedFiles(pf) => pf.len() > 0,
+            Selections::TrashItems(ti) => ti.len() > 0,
+        }
+    }
+    
+    pub fn select_drive(&self, drive: Rc<PitouDrive>) {
+        let mut selections = self.selections.borrow_mut();
+        if let Selections::Drives(d) = &mut *selections {
+            d.insert(PitouDriveWrap::new(drive));
+        } else {
+            let new_set = HashSet::from_iter(Some(PitouDriveWrap::new(drive)));
+            *selections = Selections::Drives(new_set)
+        }
+    }
+
+    pub fn all_selections(&self) -> Option<Vec<Rc<PitouFile>>> {
+        match &*self.selections.borrow() {
+            Selections::Drives(_) => todo!(),
+            Selections::FolderEntries(fe) => {
+                Some(fe.items.iter().map(|v| v.item.clone()).collect())
+            },
+            Selections::SearchResults(_) => todo!(),
+            Selections::GeneralFolders(_) => todo!(),
+            Selections::RecentFiles(_) => todo!(),
+            Selections::PinnedFiles(_) => todo!(),
+            Selections::TrashItems(_) => todo!(),
+        }
+    }
+
+    pub fn select_folder_entry(&self, item: Rc<PitouFile>) {
+        let mut selections = self.selections.borrow_mut();
+        if let Selections::FolderEntries(fe) = &mut *selections {
+            fe.items.insert(FolderEntry::new(item));
+        } else {
+            let items = HashSet::from_iter(Some(FolderEntry::new(item)));
+            *selections = Selections::FolderEntries(FolderEntrySelections { items })
+        }
+    }
+
+    pub fn select_search_result(&self, item: Rc<PitouFile>) {
+        let mut selections = self.selections.borrow_mut();
+        if let Selections::SearchResults(sr) = &mut *selections {
+            sr.insert(PitouFileWrap::new(item));
+        } else {
+            let new_set = HashSet::from_iter(Some(PitouFileWrap::new(item)));
+            *selections = Selections::SearchResults(new_set)
+        }
+    }
+
+    pub fn select_gen_folder(&self, folder: Rc<GeneralFolder>) {
+        let mut selections = self.selections.borrow_mut();
+        if let Selections::GeneralFolders(gf) = &mut *selections {
+            gf.insert(GenFolderWrap::new(folder));
+        } else {
+            let new_set = HashSet::from_iter(Some(GenFolderWrap::new(folder)));
+            *selections = Selections::GeneralFolders(new_set)
+        }
+    }
+
+    pub fn select_trash_item(&self, item: Rc<PitouTrashItem>) {
+        let mut selections = self.selections.borrow_mut();
+        if let Selections::TrashItems(vals) = &mut *selections {
+            vals.insert(PitouTrashItemWrap::new(item));
+        } else {
+            let new_set = HashSet::from_iter(Some(PitouTrashItemWrap::new(item)));
+            *selections = Selections::TrashItems(new_set)
+        }
     }
 
     pub fn update_trash_items(&self, items: Option<Rc<Vec<Rc<PitouTrashItem>>>>) {
@@ -172,25 +396,82 @@ impl StaticData {
         *self.drives.borrow_mut() = None;
     }
 
+    pub fn reset_gen_dirs(&self) {
+        *self.gen_dirs.borrow_mut() = None;
+    }
+
+    pub fn update_gen_dirs(&self, dirs: Option<Rc<Vec<Rc<GeneralFolder>>>>) {
+        *self.gen_dirs.borrow_mut() = dirs;
+    }
+
+    pub fn gen_dirs(&self) -> Option<Rc<Vec<Rc<GeneralFolder>>>>{
+        (&*self.gen_dirs.borrow()).clone()
+    }
+
     pub fn update_drives(&self, drives: Rc<Vec<Rc<PitouDrive>>>) {
         *self.drives.borrow_mut() = Some(drives);
     }
 
-    pub fn clear_selection(&self, item: VWrapper) {
-        self.selections.borrow_mut().remove(&item);
+    pub fn clear_dir_entry_selection(&self, item: Rc<PitouFile>) {
+        if let Selections::FolderEntries(en) = &mut *self.selections.borrow_mut() {
+            en.items.remove(&FolderEntry { item });
+        }
+    }
+
+    pub fn clear_drive_selection(&self, drive: Rc<PitouDrive>) {
+        if let Selections::Drives(d) = &mut *self.selections.borrow_mut() {
+            d.remove(&PitouDriveWrap { drive });
+        }
+    }
+
+    pub fn clear_gen_folder_selection(&self, folder: Rc<GeneralFolder>) {
+        if let Selections::GeneralFolders(gf) = &mut *self.selections.borrow_mut() {
+            gf.remove(&GenFolderWrap { folder });
+        }
+    }
+
+    pub fn clear_trash_item_selection(&self, item: Rc<PitouTrashItem>) {
+        if let Selections::TrashItems(ti) = &mut *self.selections.borrow_mut() {
+            ti.remove(&PitouTrashItemWrap { item });
+        }
     }
 
     pub fn clear_all_selections(&self) {
-        self.selections.borrow_mut().clear()
+        *self.selections.borrow_mut() = Selections::FolderEntries(FolderEntrySelections { items: HashSet::new() })
     }
 
-    pub fn is_selected(&self, item: VWrapper) -> bool {
-        self.selections.borrow().contains(&item)
+    pub fn is_selected_dir_entry(&self, item: Rc<PitouFile>) -> bool {
+        if let Selections::FolderEntries(en) = &*self.selections.borrow() {
+            en.items.contains(&FolderEntry { item })
+        } else {
+            false
+        }
     }
 
-    pub fn add_selection(&self, item: VWrapper) {
-        self.selections.borrow_mut().insert(item);
+    pub fn is_selected_drive(&self, drive: Rc<PitouDrive>) -> bool {
+        if let Selections::Drives(d) = &*self.selections.borrow() {
+            d.contains(&PitouDriveWrap { drive })
+        } else {
+            false
+        }
     }
+
+    pub fn is_selected_gen_folder(&self, folder: Rc<GeneralFolder>) -> bool {
+        if let Selections::GeneralFolders(gf) = &*self.selections.borrow() {
+            gf.contains(&GenFolderWrap { folder })
+        } else {
+            false
+        }
+    }
+
+    pub fn is_selected_trash_item(&self, item: Rc<PitouTrashItem>) -> bool {
+        if let Selections::TrashItems(ti) = &*self.selections.borrow() {
+            ti.contains(&PitouTrashItemWrap { item })
+        } else {
+            false
+        }
+    }
+
 }
 
 #[derive(PartialEq, Serialize, Deserialize)]
@@ -211,48 +492,6 @@ impl Default for GenCtx {
         }
     }
 }
-
-#[derive(Clone)]
-pub enum VWrapper {
-    Drive(Rc<PitouDrive>),
-    GenFolder(Rc<GeneralFolder>),
-    FirstAncestor(Rc<PitouFile>),
-    FullPath(Rc<PitouFile>),
-    TrashItem(Rc<PitouTrashItem>),
-}
-
-impl Hash for VWrapper {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        let bytes = match self {
-            VWrapper::Drive(d) => d.mount_point.as_bytes(),
-            VWrapper::GenFolder(g) => g.o_name().as_bytes(),
-            VWrapper::FirstAncestor(f) => f.name().as_bytes(),
-            VWrapper::FullPath(f) => f.path.as_bytes(),
-            VWrapper::TrashItem(t) => t.metadata.id.as_bytes(),
-        };
-        state.write(bytes);
-    }
-}
-
-impl PartialEq for VWrapper {
-    fn eq(&self, other: &Self) -> bool {
-        match self {
-            VWrapper::Drive(d1) => matches!(other, Self::Drive(d2) if d1 == d2),
-            VWrapper::GenFolder(g1) => {
-                matches!(other, Self::GenFolder(g2) if g1.o_name() == g2.o_name())
-            }
-            VWrapper::FirstAncestor(a1) => {
-                matches!(other, Self::FirstAncestor(a2) if a1.name() == a2.name())
-            }
-            VWrapper::FullPath(f1) => matches!(other, Self::FullPath(f2) if f1.path == f2.path),
-            VWrapper::TrashItem(t1) => {
-                matches!(other, Self::TrashItem(t2) if t1.original_path == t2.original_path)
-            }
-        }
-    }
-}
-
-impl Eq for VWrapper {}
 
 #[derive(Clone)]
 pub struct AllTabsCtx {
@@ -349,20 +588,6 @@ impl ApplicationContext {
             active_tab,
             static_data,
             refresher_state: Rc::new(RefresherState::default())
-        }
-    }
-
-    pub fn can_attempt_delete(&self) -> bool {
-        let selections = self.static_data.selections.borrow();
-        match selections.iter().next() {
-            None => false,
-            Some(v) => match v {
-                VWrapper::Drive(_) => false,
-                VWrapper::GenFolder(_) => false,
-                VWrapper::FirstAncestor(_) => true,
-                VWrapper::FullPath(_) => true,
-                VWrapper::TrashItem(_) => true,
-            }
         }
     }
 

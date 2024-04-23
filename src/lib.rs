@@ -62,18 +62,18 @@ pub enum PitouFileKind {
 
 #[derive(Clone, Copy)]
 pub struct PitouFileSize {
-    bytes: u64,
+    pub bytes: u64,
 }
 
 impl PitouFileSize {
-    const KB: f64 = (2u64 << 10) as f64;
-    const MB: f64 = (2u64 << 20) as f64;
-    const GB: f64 = (2u64 << 30) as f64;
-    const TB: f64 = (2u64 << 40) as f64;
+    const KB: f64 = (1u64 << 10) as f64;
+    const MB: f64 = (1u64 << 20) as f64;
+    const GB: f64 = (1u64 << 30) as f64;
+    const TB: f64 = (1u64 << 40) as f64;
     pub fn format(self) -> String {
         let bytes = self.bytes as f64;
         if bytes < Self::KB {
-            format! {"{:.2} B", bytes}
+            format! {"{} B", bytes}
         } else if bytes < Self::MB {
             format! {"{:.2} KB", bytes / Self::KB }
         } else if bytes < Self::GB {
@@ -108,8 +108,8 @@ impl PitouFileMetadata {
         matches!(self.kind, PitouFileKind::Directory)
     }
 
-    fn attempt(path: &PathBuf) -> Option<Self> {
-        std::fs::metadata(path).map(|v| v.into()).ok()
+    pub fn kind(&self) -> PitouFileKind {
+        self.kind
     }
 }
 
@@ -120,6 +120,12 @@ pub struct PitouDrive {
     pub free_space: u64,
     pub is_removable: bool,
     pub kind: PitouDriveKind,
+}
+
+impl PitouDrive {
+    pub fn mount_point(&self) -> &PitouFilePath {
+        &self.mount_point
+    }
 }
 
 impl PartialEq for PitouDrive {
@@ -141,13 +147,6 @@ pub struct PitouFile {
 }
 
 impl PitouFile {
-    pub fn from_pathbuf(path: PathBuf) -> Self {
-        Self {
-            metadata: PitouFileMetadata::attempt(&path),
-            path: path.into(),
-        }
-    }
-
     pub fn is_dir(&self) -> bool {
         match &self.metadata {
             None => false,
@@ -177,6 +176,14 @@ impl PitouFile {
         let end = (0..name.len()).rev().find(|&v| name.as_bytes()[v] == b'.').unwrap_or(name.len());
         &name[1..end]
     }
+
+    pub fn path(&self) -> &PitouFilePath {
+        &self.path
+    }
+
+    pub fn metadata(&self) -> &Option<PitouFileMetadata> {
+        &self.metadata
+    }
 }
 
 pub struct PitouTrashItem {
@@ -188,6 +195,11 @@ impl PitouTrashItem {
     pub fn path(&self) -> &PitouFilePath {
         &self.original_path
     }
+
+    pub fn id(&self) -> &str {
+        &self.metadata().id
+    }
+
     pub fn metadata(&self) -> &PitouTrashItemMetadata {
         &self.metadata
     }
