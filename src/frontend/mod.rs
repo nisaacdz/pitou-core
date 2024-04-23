@@ -311,6 +311,26 @@ impl StaticData {
             Selections::TrashItems(ti) => ti.len() > 0,
         }
     }
+
+    pub fn openable_selection(&self) -> Option<Rc<PitouFile>> {
+        match &*self.selections.borrow() {
+            Selections::Drives(_) => None,
+            Selections::FolderEntries(fe) => {
+                fe.items.iter().next().map(|v| v.item.clone())
+            },
+            Selections::SearchResults(sr) => {
+                sr.iter().next().map(|v| v.inner.clone())
+            },
+            Selections::GeneralFolders(_) => todo!(),
+            Selections::RecentFiles(rf) => {
+                rf.iter().next().map(|v| v.inner.clone())
+            },
+            Selections::PinnedFiles(pf) => {
+                pf.iter().next().map(|v| v.inner.clone())
+            },
+            Selections::TrashItems(_) => None,
+        }
+    }
     
     pub fn select_drive(&self, drive: Rc<PitouDrive>) {
         let mut selections = self.selections.borrow_mut();
@@ -322,17 +342,11 @@ impl StaticData {
         }
     }
 
-    pub fn all_selections(&self) -> Option<Vec<Rc<PitouFile>>> {
-        match &*self.selections.borrow() {
-            Selections::Drives(_) => todo!(),
-            Selections::FolderEntries(fe) => {
-                Some(fe.items.iter().map(|v| v.item.clone()).collect())
-            },
-            Selections::SearchResults(_) => todo!(),
-            Selections::GeneralFolders(_) => todo!(),
-            Selections::RecentFiles(_) => todo!(),
-            Selections::PinnedFiles(_) => todo!(),
-            Selections::TrashItems(_) => todo!(),
+    pub fn folder_entry_selections(&self) -> Option<Vec<Rc<PitouFile>>> {
+        if let Selections::FolderEntries(fe) = &*self.selections.borrow() {
+            Some(fe.items.iter().map(|v| v.item.clone()).collect())
+        } else {
+            None
         }
     }
 

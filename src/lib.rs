@@ -377,7 +377,7 @@ impl ColorTheme {
         background2: Color(60, 60, 60, 255),
         foreground1: Color(220, 220, 220, 255),
         foreground2: Color(180, 180, 180, 255),
-        spare1: Color(45, 45, 45, 255),
+        spare1: Color(10, 10, 10, 255),
         spare2: Color(120, 180, 240, 255),
     };
 
@@ -417,6 +417,7 @@ impl GeneralFolder {
             GeneralFolder::DownloadsFolder(d) => d.name(),
         }
     }
+
     pub fn name(&self) -> String {
         match self {
             GeneralFolder::DocumentsFolder(_) => String::from("Documents"),
