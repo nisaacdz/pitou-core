@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use crate::{
     GeneralFolder, PitouDateTime, PitouDrive, PitouFile, PitouFileFilter, PitouFilePath,
-    PitouFileSize, PitouFileSort, PitouTrashItem, PitouTrashItemMetadata,
+    PitouFileSize, PitouFileMetadata, PitouFileSort, PitouTrashItem, PitouTrashItemMetadata,
 };
 use chrono::DateTime;
 use fs_extra::dir::CopyOptions;
