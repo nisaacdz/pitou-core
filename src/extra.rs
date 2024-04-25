@@ -1,5 +1,8 @@
 use std::{
-    fs::{FileType, Metadata}, hash::Hash, path::PathBuf, time::SystemTime
+    fs::{FileType, Metadata},
+    hash::Hash,
+    path::PathBuf,
+    time::SystemTime,
 };
 
 use chrono::DateTime;

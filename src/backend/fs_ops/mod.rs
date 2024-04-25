@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
 use crate::{
-    GeneralFolder, PitouDateTime, PitouDrive, PitouFile, PitouFileFilter, PitouFilePath,
-    PitouFileSize, PitouFileMetadata, PitouFileSort, PitouTrashItem, PitouTrashItemMetadata,
+    GeneralFolder, PitouDateTime, PitouDrive, PitouFile, PitouFileFilter, PitouFileMetadata,
+    PitouFilePath, PitouFileSize, PitouFileSort, PitouTrashItem, PitouTrashItemMetadata,
 };
 use chrono::DateTime;
 use fs_extra::dir::CopyOptions;
@@ -64,7 +64,7 @@ pub mod clipboard {
             Some(v) => match v {
                 ClipboardItem::Copied(u) => guard.push(ClipboardItem::Copied(u.clone())),
                 ClipboardItem::Cut(u) => guard.push(ClipboardItem::Copied(u.clone())),
-            }
+            },
         }
         std::mem::drop(guard);
         items
@@ -95,9 +95,13 @@ pub async fn paste(dir: PitouFile) {
     match clipboard::paste().await {
         None => (),
         Some(v) => match v {
-            clipboard::ClipboardItem::Copied(u) => { fs_extra::copy_items(&*u, &dir, &CopyOptions::new()).ok(); }
-            clipboard::ClipboardItem::Cut(u) => { fs_extra::move_items(&*u, &dir, &CopyOptions::new()).ok(); },
-        }
+            clipboard::ClipboardItem::Copied(u) => {
+                fs_extra::copy_items(&*u, &dir, &CopyOptions::new()).ok();
+            }
+            clipboard::ClipboardItem::Cut(u) => {
+                fs_extra::move_items(&*u, &dir, &CopyOptions::new()).ok();
+            }
+        },
     }
 }
 

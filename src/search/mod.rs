@@ -2,7 +2,6 @@ use std::rc::Rc;
 
 use crate::{PitouFile, PitouFileFilter};
 
-
 pub struct SimplifiedSearchOptions {
     pub(crate) search_dir: Rc<PitouFile>,
     pub(crate) input: String,

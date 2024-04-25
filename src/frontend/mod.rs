@@ -7,7 +7,10 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
-use crate::{search::SimplifiedSearchOptions, AppMenu, AppSettings, ColorTheme, GeneralFolder, ItemsView, PitouDrive, PitouFile, PitouTrashItem};
+use crate::{
+    search::SimplifiedSearchOptions, AppMenu, AppSettings, ColorTheme, GeneralFolder, ItemsView,
+    PitouDrive, PitouFile, PitouTrashItem,
+};
 
 use self::extra::FolderTracker;
 pub mod ser_de;
@@ -28,11 +31,9 @@ impl TabCtx {
         let menu = *self.current_menu.borrow();
         match menu {
             AppMenu::Home => "Home".to_owned(),
-            AppMenu::Explorer => {
-                match &*self.folder_tracker.borrow() {
-                    Some(v) => v.current().name().to_owned(),
-                    None => "".to_owned(),
-                }
+            AppMenu::Explorer => match &*self.folder_tracker.borrow() {
+                Some(v) => v.current().name().to_owned(),
+                None => "".to_owned(),
             },
             AppMenu::Trash => "Recycle Bin".to_owned(),
             AppMenu::Favorites => "Favorites".to_owned(),
@@ -50,11 +51,19 @@ impl TabCtx {
     }
 
     pub fn can_navigate_backward(&self) -> bool {
-        self.folder_tracker.borrow().as_ref().map(|v| v.prev().is_some()).unwrap_or(false)
+        self.folder_tracker
+            .borrow()
+            .as_ref()
+            .map(|v| v.prev().is_some())
+            .unwrap_or(false)
     }
 
     pub fn can_navigate_forward(&self) -> bool {
-        self.folder_tracker.borrow().as_ref().map(|v| v.next().is_some()).unwrap_or(false)
+        self.folder_tracker
+            .borrow()
+            .as_ref()
+            .map(|v| v.next().is_some())
+            .unwrap_or(false)
     }
 
     pub fn current_dir(&self) -> Option<Rc<PitouFile>> {
@@ -62,11 +71,17 @@ impl TabCtx {
     }
 
     pub fn navigate_backward(&self) {
-        self.folder_tracker.borrow_mut().as_mut().map(|v| v.go_backward());
+        self.folder_tracker
+            .borrow_mut()
+            .as_mut()
+            .map(|v| v.go_backward());
     }
 
     pub fn navigate_forward(&self) {
-        self.folder_tracker.borrow_mut().as_mut().map(|v| v.go_forward());
+        self.folder_tracker
+            .borrow_mut()
+            .as_mut()
+            .map(|v| v.go_forward());
     }
 
     pub fn update_cur_dir(&self, current_dir: Option<Rc<PitouFile>>) {
@@ -149,9 +164,7 @@ impl PartialEq for GenFolderWrap {
     }
 }
 
-impl Eq for GenFolderWrap {
-
-}
+impl Eq for GenFolderWrap {}
 
 impl Hash for GenFolderWrap {
     fn hash<H: Hasher>(&self, state: &mut H) {
@@ -176,9 +189,7 @@ impl PartialEq for PitouFileWrap {
     }
 }
 
-impl Eq for PitouFileWrap {
-    
-}
+impl Eq for PitouFileWrap {}
 
 impl Hash for PitouFileWrap {
     fn hash<H: Hasher>(&self, state: &mut H) {
@@ -206,15 +217,11 @@ impl PartialEq for PitouDriveWrap {
     }
 }
 
-impl Eq for PitouDriveWrap {
-
-}
+impl Eq for PitouDriveWrap {}
 
 impl PitouDriveWrap {
     fn new(drive: Rc<PitouDrive>) -> Self {
-        Self {
-            drive
-        }
+        Self { drive }
     }
 }
 
@@ -231,9 +238,7 @@ pub struct PitouTrashItemWrap {
 
 impl PitouTrashItemWrap {
     fn new(item: Rc<PitouTrashItem>) -> Self {
-        Self {
-            item
-        }
+        Self { item }
     }
 }
 
@@ -243,9 +248,7 @@ impl PartialEq for PitouTrashItemWrap {
     }
 }
 
-impl Eq for PitouTrashItemWrap {
-
-}
+impl Eq for PitouTrashItemWrap {}
 
 impl Hash for PitouTrashItemWrap {
     fn hash<H: Hasher>(&self, state: &mut H) {
@@ -254,7 +257,7 @@ impl Hash for PitouTrashItemWrap {
 }
 
 struct FolderEntry {
-    item: Rc<PitouFile>
+    item: Rc<PitouFile>,
 }
 
 impl FolderEntry {
@@ -263,15 +266,13 @@ impl FolderEntry {
     }
 }
 
-impl PartialEq for FolderEntry  {
+impl PartialEq for FolderEntry {
     fn eq(&self, other: &Self) -> bool {
         self.item.name() == other.item.name()
     }
 }
 
-impl Eq for FolderEntry {
-    
-}
+impl Eq for FolderEntry {}
 
 impl Hash for FolderEntry {
     fn hash<H: Hasher>(&self, state: &mut H) {
@@ -296,7 +297,7 @@ impl StaticData {
             drives: RefCell::new(None),
             selections: RefCell::new(Selections::Drives(HashSet::new())),
             trash_items: RefCell::new(None),
-            gen_dirs: RefCell::new(None)
+            gen_dirs: RefCell::new(None),
         }
     }
 
@@ -315,23 +316,15 @@ impl StaticData {
     pub fn openable_selection(&self) -> Option<Rc<PitouFile>> {
         match &*self.selections.borrow() {
             Selections::Drives(_) => None,
-            Selections::FolderEntries(fe) => {
-                fe.items.iter().next().map(|v| v.item.clone())
-            },
-            Selections::SearchResults(sr) => {
-                sr.iter().next().map(|v| v.inner.clone())
-            },
+            Selections::FolderEntries(fe) => fe.items.iter().next().map(|v| v.item.clone()),
+            Selections::SearchResults(sr) => sr.iter().next().map(|v| v.inner.clone()),
             Selections::GeneralFolders(_) => todo!(),
-            Selections::RecentFiles(rf) => {
-                rf.iter().next().map(|v| v.inner.clone())
-            },
-            Selections::PinnedFiles(pf) => {
-                pf.iter().next().map(|v| v.inner.clone())
-            },
+            Selections::RecentFiles(rf) => rf.iter().next().map(|v| v.inner.clone()),
+            Selections::PinnedFiles(pf) => pf.iter().next().map(|v| v.inner.clone()),
             Selections::TrashItems(_) => None,
         }
     }
-    
+
     pub fn select_drive(&self, drive: Rc<PitouDrive>) {
         let mut selections = self.selections.borrow_mut();
         if let Selections::Drives(d) = &mut *selections {
@@ -339,6 +332,14 @@ impl StaticData {
         } else {
             let new_set = HashSet::from_iter(Some(PitouDriveWrap::new(drive)));
             *selections = Selections::Drives(new_set)
+        }
+    }
+
+    pub fn has_folder_entry_selections(&self) -> bool {
+        if let Selections::FolderEntries(fe) = &*self.selections.borrow() {
+            fe.items.len() > 0
+        } else {
+            false
         }
     }
 
@@ -418,7 +419,7 @@ impl StaticData {
         *self.gen_dirs.borrow_mut() = dirs;
     }
 
-    pub fn gen_dirs(&self) -> Option<Rc<Vec<Rc<GeneralFolder>>>>{
+    pub fn gen_dirs(&self) -> Option<Rc<Vec<Rc<GeneralFolder>>>> {
         (&*self.gen_dirs.borrow()).clone()
     }
 
@@ -451,7 +452,9 @@ impl StaticData {
     }
 
     pub fn clear_all_selections(&self) {
-        *self.selections.borrow_mut() = Selections::FolderEntries(FolderEntrySelections { items: HashSet::new() })
+        *self.selections.borrow_mut() = Selections::FolderEntries(FolderEntrySelections {
+            items: HashSet::new(),
+        })
     }
 
     pub fn is_selected_dir_entry(&self, item: Rc<PitouFile>) -> bool {
@@ -485,7 +488,6 @@ impl StaticData {
             false
         }
     }
-
 }
 
 #[derive(PartialEq, Serialize, Deserialize)]
@@ -512,7 +514,6 @@ pub struct AllTabsCtx {
     pub all_tabs: Rc<RefCell<Vec<Rc<TabCtx>>>>,
     pub active_tab: usize,
 }
-
 
 impl AllTabsCtx {
     pub fn default() -> Self {
@@ -566,7 +567,8 @@ impl AllTabsCtx {
 
 #[derive(Clone, Copy, PartialEq)]
 enum State {
-    State1, State2
+    State1,
+    State2,
 }
 
 #[derive(PartialEq)]
@@ -576,10 +578,11 @@ pub struct RefresherState {
 
 impl RefresherState {
     pub fn default() -> Self {
-        Self { state: RefCell::new(State::State1) }
+        Self {
+            state: RefCell::new(State::State1),
+        }
     }
 }
-
 
 #[derive(Clone)]
 pub struct ApplicationContext {
@@ -596,12 +599,16 @@ impl PartialEq for ApplicationContext {
 }
 
 impl ApplicationContext {
-    pub fn new(gen_ctx: Rc<RefCell<GenCtx>>, active_tab: Rc<TabCtx>, static_data: Rc<StaticData>) -> Self {
+    pub fn new(
+        gen_ctx: Rc<RefCell<GenCtx>>,
+        active_tab: Rc<TabCtx>,
+        static_data: Rc<StaticData>,
+    ) -> Self {
         Self {
             gen_ctx,
             active_tab,
             static_data,
-            refresher_state: Rc::new(RefresherState::default())
+            refresher_state: Rc::new(RefresherState::default()),
         }
     }
 

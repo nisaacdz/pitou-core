@@ -23,8 +23,11 @@ pub struct PitouFilePath {
 
 impl PitouFilePath {
     pub fn name(&self) -> &str {
-        if self.path.as_os_str().len() == 0 { return "Drives" }
-        let res = self.path
+        if self.path.as_os_str().len() == 0 {
+            return "Drives";
+        }
+        let res = self
+            .path
             .file_name()
             .map(|v| v.to_str().unwrap_or_default())
             .unwrap_or_default();
@@ -147,13 +150,20 @@ pub struct PitouFile {
 }
 
 impl PitouFile {
+    pub fn without_metadata(path: PitouFilePath) -> Self {
+        Self {
+            path,
+            metadata: None,
+        }
+    }
+
     pub fn is_dir(&self) -> bool {
         match &self.metadata {
             None => false,
             Some(metadata) => matches!(metadata.kind, PitouFileKind::Directory),
         }
     }
-    
+
     pub fn is_link(&self) -> bool {
         match &self.metadata {
             None => false,
@@ -173,7 +183,10 @@ impl PitouFile {
 
     pub fn name_without_extension(&self) -> &str {
         let name = self.name();
-        let end = (0..name.len()).rev().find(|&v| name.as_bytes()[v] == b'.').unwrap_or(name.len());
+        let end = (0..name.len())
+            .rev()
+            .find(|&v| name.as_bytes()[v] == b'.')
+            .unwrap_or(name.len());
         &name[1..end]
     }
 
@@ -362,7 +375,7 @@ impl ColorTheme {
         spare1: Color(80, 80, 80, 255),
         spare2: Color(0, 230, 125, 255),
     };
-    
+
     pub const GEM_DARK: Self = Self {
         background1: Color(50, 50, 50, 255),
         background2: Color(30, 30, 30, 255),
@@ -376,11 +389,10 @@ impl ColorTheme {
         background1: Color(30, 30, 30, 255),
         background2: Color(60, 60, 60, 255),
         foreground1: Color(220, 220, 220, 255),
-        foreground2: Color(180, 180, 180, 255),
+        foreground2: Color(50, 150, 50, 255),
         spare1: Color(10, 10, 10, 255),
         spare2: Color(120, 180, 240, 255),
     };
-
 }
 
 #[derive(Clone, Copy, PartialEq, Serialize, Deserialize)]

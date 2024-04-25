@@ -61,4 +61,3 @@ impl<'d> Deserialize<'d> for PitouFileSize {
         Ok(Self { bytes })
     }
 }
-

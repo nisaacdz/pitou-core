@@ -1,8 +1,14 @@
 use std::{path::PathBuf, rc::Rc};
 
-use serde::{de::{SeqAccess, Visitor}, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{
+    de::{SeqAccess, Visitor},
+    Deserialize, Deserializer, Serialize, Serializer,
+};
 
-use crate::{search::SimplifiedSearchOptions, GeneralFolder, PitouDrive, PitouDriveKind, PitouFile, PitouFileFilter, PitouFileMetadata, PitouFilePath, PitouTrashItem, PitouTrashItemMetadata};
+use crate::{
+    search::SimplifiedSearchOptions, GeneralFolder, PitouDrive, PitouDriveKind, PitouFile,
+    PitouFileFilter, PitouFileMetadata, PitouFilePath, PitouTrashItem, PitouTrashItemMetadata,
+};
 
 use super::extra::DirChildren;
 
@@ -29,10 +35,7 @@ impl<'d> Deserialize<'d> for PitouFile {
             metadata: Option<PitouFileMetadata>,
         }
 
-        let PitouFile {
-            path,
-            metadata
-        } = PitouFile::deserialize(dz)?;
+        let PitouFile { path, metadata } = PitouFile::deserialize(dz)?;
         Ok(Self { path, metadata })
     }
 }
@@ -65,7 +68,6 @@ fn parse_path(mut path_str: String) -> PathBuf {
     PathBuf::from(path_str)
 }
 
-
 impl<'d> Deserialize<'d> for PitouDrive {
     fn deserialize<D: Deserializer<'d>>(dz: D) -> Result<Self, D::Error> {
         #[derive(Deserialize)]
@@ -93,11 +95,10 @@ impl<'d> Deserialize<'d> for PitouDrive {
             total_space,
             free_space,
             is_removable,
-            kind
+            kind,
         })
     }
 }
-
 
 impl<'d> Deserialize<'d> for DirChildren {
     fn deserialize<D: Deserializer<'d>>(dz: D) -> Result<Self, D::Error> {
@@ -120,8 +121,6 @@ impl<'d> Deserialize<'d> for DirChildren {
     }
 }
 
-
-
 mod serialize_rc_pitoufile {
     use super::*;
 
@@ -133,7 +132,7 @@ impl Serialize for SimplifiedSearchOptions {
     fn serialize<S: Serializer>(&self, sz: S) -> Result<S::Ok, S::Error> {
         #[derive(Serialize)]
         struct SimplifiedSearchOptions<'a> {
-            #[serde(with="serialize_rc_pitoufile")]
+            #[serde(with = "serialize_rc_pitoufile")]
             search_dir: &'a Rc<PitouFile>,
             hardware_accelerate: bool,
             filter: PitouFileFilter,
@@ -155,7 +154,8 @@ impl Serialize for SimplifiedSearchOptions {
             skip_errors: self.skip_errors,
             max_finds: self.max_finds,
             case_sensitive: self.case_sensitive,
-        }.serialize(sz)
+        }
+        .serialize(sz)
     }
 }
 
@@ -167,11 +167,16 @@ impl<'d> Deserialize<'d> for PitouTrashItem {
             metadata: PitouTrashItemMetadata,
         }
 
-        let PitouTrashItem { original_path, metadata } = PitouTrashItem::deserialize(dz)?;
-        Ok(Self { original_path, metadata })
+        let PitouTrashItem {
+            original_path,
+            metadata,
+        } = PitouTrashItem::deserialize(dz)?;
+        Ok(Self {
+            original_path,
+            metadata,
+        })
     }
 }
-
 
 impl<'d> Deserialize<'d> for GeneralFolder {
     fn deserialize<D: Deserializer<'d>>(dz: D) -> Result<Self, D::Error> {

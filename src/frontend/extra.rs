@@ -60,7 +60,6 @@ impl FolderTracker {
     }
 }
 
-
 pub struct DirChildren {
     pub children: Vec<Rc<PitouFile>>,
 }

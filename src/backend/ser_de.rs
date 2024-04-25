@@ -1,7 +1,10 @@
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::{path::PathBuf, rc::Rc};
 
-use crate::{search::SimplifiedSearchOptions, GeneralFolder, PitouDrive, PitouDriveKind, PitouFile, PitouFileFilter, PitouFileMetadata, PitouFilePath, PitouTrashItem, PitouTrashItemMetadata};
+use crate::{
+    search::SimplifiedSearchOptions, GeneralFolder, PitouDrive, PitouDriveKind, PitouFile,
+    PitouFileFilter, PitouFileMetadata, PitouFilePath, PitouTrashItem, PitouTrashItemMetadata,
+};
 
 const BMS: u8 = b'\\';
 const FMS: u8 = b'/';
@@ -166,10 +169,10 @@ impl Serialize for PitouTrashItem {
         PitouTrashItem {
             original_path: &self.original_path,
             metadata: &self.metadata,
-        }.serialize(sz)
+        }
+        .serialize(sz)
     }
 }
-
 
 impl Serialize for GeneralFolder {
     fn serialize<S: Serializer>(&self, sz: S) -> Result<S::Ok, S::Error> {
@@ -190,6 +193,7 @@ impl Serialize for GeneralFolder {
             Self::VideosFolder(path) => GeneralFolder::VideosFolder(path),
             Self::DesktopFolder(path) => GeneralFolder::DesktopFolder(path),
             Self::DownloadsFolder(path) => GeneralFolder::DownloadsFolder(path),
-        }.serialize(sz)
+        }
+        .serialize(sz)
     }
 }
