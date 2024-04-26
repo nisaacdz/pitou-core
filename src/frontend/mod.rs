@@ -8,8 +8,7 @@ use std::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    search::SimplifiedSearchOptions, AppMenu, AppSettings, ColorTheme, GeneralFolder, ItemsView,
-    PitouDrive, PitouFile, PitouTrashItem,
+    search::SimplifiedSearchOptions, AppMenu, AppSettings, ColorTheme, GeneralFolder, ItemsView, PitouDrive, PitouFile, PitouFileSort, PitouTrashItem
 };
 
 use self::extra::FolderTracker;
@@ -569,6 +568,10 @@ impl AllTabsCtx {
 enum State {
     State1,
     State2,
+    State3,
+    State4,
+    State5,
+    State6,
 }
 
 #[derive(PartialEq)]
@@ -599,6 +602,15 @@ impl PartialEq for ApplicationContext {
 }
 
 impl ApplicationContext {
+    pub fn items_sort(&self) -> Option<PitouFileSort> {
+        self.gen_ctx.borrow().app_settings.items_sort
+    }
+
+    pub fn update_items_sort(&self, sort: Option<PitouFileSort>) {
+        let mut ctx = self.gen_ctx.borrow_mut();
+        ctx.app_settings.items_sort = sort;
+    }
+
     pub fn new(
         gen_ctx: Rc<RefCell<GenCtx>>,
         active_tab: Rc<TabCtx>,
@@ -620,12 +632,20 @@ impl ApplicationContext {
         let mut state = self.refresher_state.state.borrow_mut();
         match *state {
             State::State1 => *state = State::State2,
-            State::State2 => *state = State::State1,
+            State::State2 => *state = State::State3,
+            State::State3 => *state = State::State4,
+            State::State4 => *state = State::State5,
+            State::State5 => *state = State::State6,
+            State::State6 => *state = State::State1,
         }
     }
 
     pub fn current_menu(&self) -> AppMenu {
         *self.active_tab.current_menu.borrow()
+    }
+
+    pub fn new_folder_able(&self) -> bool {
+        self.current_menu() == AppMenu::Explorer && matches!(self.active_tab.current_dir(), Some(v) if v.path().len() > 0)
     }
 
     pub fn color_theme(&self) -> ColorTheme {

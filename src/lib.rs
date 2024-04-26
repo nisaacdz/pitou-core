@@ -49,6 +49,10 @@ impl PitouFilePath {
         }
         ll.into_iter()
     }
+
+    pub fn len(&self) -> usize {
+        self.as_bytes().len()
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy)]
@@ -232,18 +236,18 @@ pub struct PitouTrashItemMetadata {
     pub is_dir: bool,
 }
 
-#[derive(Clone, Copy, Serialize, Deserialize)]
+#[derive(Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub enum PitouFileSortOrder {
     Increasing,
     Decreasing,
 }
 
-#[derive(Clone, Copy, Serialize, Deserialize)]
+#[derive(Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub enum PitouFileSort {
     DateCreated(PitouFileSortOrder),
-    Name(PitouFileSortOrder),
     DateModified(PitouFileSortOrder),
     DateAccessed(PitouFileSortOrder),
+    Name(PitouFileSortOrder),
 }
 
 impl PitouFileSort {
@@ -373,7 +377,7 @@ impl ColorTheme {
         foreground1: Color(50, 50, 50, 255),
         foreground2: Color(80, 80, 80, 255),
         spare1: Color(80, 80, 80, 255),
-        spare2: Color(0, 230, 125, 255),
+        spare2: Color(30, 120, 50, 255),
     };
 
     pub const GEM_DARK: Self = Self {
@@ -468,6 +472,7 @@ pub struct AppSettings {
     pub show_thumbnails: bool,
     pub items_view: ItemsView,
     pub show_parents: bool,
+    pub items_sort: Option<PitouFileSort>,
     pub items_zoom: f32,
 }
 
@@ -481,6 +486,7 @@ impl Default for AppSettings {
             items_view: ItemsView::Tiles,
             show_parents: false,
             items_zoom: 1.0,
+            items_sort: None,
         }
     }
 }
