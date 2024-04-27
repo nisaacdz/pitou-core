@@ -4,10 +4,12 @@ use sysinfo::{Disk, DiskKind, Disks};
 
 impl PitouDrive {
     pub fn get_drives() -> Vec<Self> {
-        Disks::new_with_refreshed_list()
+        let mut drives = Disks::new_with_refreshed_list()
             .into_iter()
             .map(|d| Self::to_drive(d))
-            .collect()
+            .collect::<Vec<_>>();
+        drives.sort_unstable_by(|a, b| a.mount_point().as_bytes().cmp(&b.mount_point().as_bytes()));
+        drives
     }
 
     fn to_drive(disk: &Disk) -> Self {

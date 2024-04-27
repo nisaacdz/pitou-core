@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, str::FromStr};
 
 use crate::{
     GeneralFolder, PitouDateTime, PitouDrive, PitouFile, PitouFileFilter, PitouFileMetadata,
@@ -246,12 +246,40 @@ pub fn trash_items() -> Option<Vec<PitouTrashItem>> {
         .ok()
 }
 
-pub fn restore_trash(_items: impl Iterator<Item = PitouTrashItemMetadata>) {
-    todo!()
+pub fn restore_trash(items: impl Iterator<Item = PitouTrashItem>) {
+    trash::os_limited::restore_all(items.map(|v| <PitouTrashItem as Into<TrashItem>>::into(v)))
+        .ok();
 }
 
-pub fn purge_trash(_items: impl Iterator<Item = PitouTrashItemMetadata>) {
-    todo!()
+pub fn purge_trash(items: impl Iterator<Item = PitouTrashItem>) {
+    trash::os_limited::purge_all(items.map(|v| <PitouTrashItem as Into<TrashItem>>::into(v))).ok();
+}
+
+impl From<PitouTrashItem> for TrashItem {
+    fn from(
+        PitouTrashItem {
+            mut original_path,
+            metadata:
+                PitouTrashItemMetadata {
+                    id,
+                    deleted,
+                    size: _,
+                    is_dir: _,
+                },
+        }: PitouTrashItem,
+    ) -> Self {
+        let time_deleted = deleted.datetime.and_utc().timestamp();
+        let name = original_path.name().to_owned();
+        original_path.path.pop();
+        let original_parent = original_path.path;
+
+        Self {
+            id: std::ffi::OsString::from_str(&id).unwrap(),
+            name,
+            time_deleted,
+            original_parent,
+        }
+    }
 }
 
 impl TryFrom<TrashItem> for PitouTrashItem {

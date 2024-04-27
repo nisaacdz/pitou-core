@@ -34,6 +34,10 @@ impl PitouFilePath {
         res
     }
 
+    pub fn as_os_str(&self) -> &std::ffi::OsStr {
+        self.path.as_os_str()
+    }
+
     pub fn from_pathbuf(pathbuf: PathBuf) -> Self {
         Self { path: pathbuf }
     }
@@ -191,7 +195,7 @@ impl PitouFile {
             .rev()
             .find(|&v| name.as_bytes()[v] == b'.')
             .unwrap_or(name.len());
-        &name[1..end]
+        &name[0..end]
     }
 
     pub fn path(&self) -> &PitouFilePath {
@@ -466,7 +470,7 @@ pub enum ItemsView {
 
 #[derive(PartialEq, Serialize, Deserialize)]
 pub struct AppSettings {
-    pub refresh_rate: u8,
+    pub refresh_rate: u8, // a number in the range 1..=60 (15000)
     pub show_extensions: bool,
     pub hide_system_files: bool,
     pub show_thumbnails: bool,
@@ -476,10 +480,20 @@ pub struct AppSettings {
     pub items_zoom: f32,
 }
 
+impl AppSettings {
+    pub fn refresh_rate_as_millis(&self) -> u32 {
+        /*
+            60 => 250 millis
+            1 => 15000 millis
+        */
+        15000 / self.refresh_rate as u32
+    }
+}
+
 impl Default for AppSettings {
     fn default() -> Self {
         Self {
-            refresh_rate: 250,
+            refresh_rate: 20,
             show_extensions: true,
             hide_system_files: true,
             show_thumbnails: false,

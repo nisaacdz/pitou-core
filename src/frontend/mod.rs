@@ -8,7 +8,8 @@ use std::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    search::SimplifiedSearchOptions, AppMenu, AppSettings, ColorTheme, GeneralFolder, ItemsView, PitouDrive, PitouFile, PitouFileSort, PitouTrashItem
+    search::SimplifiedSearchOptions, AppMenu, AppSettings, ColorTheme, GeneralFolder, ItemsView,
+    PitouDrive, PitouFile, PitouFileSort, PitouTrashItem,
 };
 
 use self::extra::FolderTracker;
@@ -42,6 +43,10 @@ impl TabCtx {
             AppMenu::Cloud => "Cloud Storage".to_owned(),
             AppMenu::Settings => "Settings".to_owned(),
         }
+    }
+
+    pub fn dir_children(&self) -> Option<Rc<Vec<Rc<PitouFile>>>> {
+        (*self.dir_children.borrow()).clone()
     }
 
     pub fn reset_current_files(&self) {
@@ -606,6 +611,18 @@ impl ApplicationContext {
         self.gen_ctx.borrow().app_settings.items_sort
     }
 
+    pub fn hide_system_files(&self) -> bool {
+        self.gen_ctx.borrow().app_settings.hide_system_files
+    }
+
+    pub fn update_hide_system_files(&self, hide_system_files: bool) {
+        self.gen_ctx.borrow_mut().app_settings.hide_system_files = hide_system_files
+    }
+
+    pub fn refresh_rate_as_millis(&self) -> u32 {
+        self.gen_ctx.borrow().app_settings.refresh_rate_as_millis()
+    }
+
     pub fn update_items_sort(&self, sort: Option<PitouFileSort>) {
         let mut ctx = self.gen_ctx.borrow_mut();
         ctx.app_settings.items_sort = sort;
@@ -645,7 +662,8 @@ impl ApplicationContext {
     }
 
     pub fn new_folder_able(&self) -> bool {
-        self.current_menu() == AppMenu::Explorer && matches!(self.active_tab.current_dir(), Some(v) if v.path().len() > 0)
+        self.current_menu() == AppMenu::Explorer
+            && matches!(self.active_tab.current_dir(), Some(v) if v.path().len() > 0)
     }
 
     pub fn color_theme(&self) -> ColorTheme {
@@ -657,15 +675,18 @@ impl ApplicationContext {
     }
 
     pub fn update_refresh_rate(&self, new_rate: u8) {
+        if new_rate < 1 || new_rate > 60 {
+            return;
+        }
         self.gen_ctx.borrow_mut().app_settings.refresh_rate = new_rate;
     }
 
-    pub fn toggle_show_extensions(&self, new_val: bool) {
-        self.gen_ctx.borrow_mut().app_settings.show_extensions = new_val;
+    pub fn show_extensions(&self) -> bool {
+        self.gen_ctx.borrow().app_settings.show_extensions
     }
 
-    pub fn toggle_hide_system_files(&self, new_val: bool) {
-        self.gen_ctx.borrow_mut().app_settings.hide_system_files = new_val;
+    pub fn update_show_extensions(&self, show_extensions: bool) {
+        self.gen_ctx.borrow_mut().app_settings.show_extensions = show_extensions;
     }
 
     pub fn toggle_show_thumbnails(&self, new_val: bool) {
@@ -682,10 +703,6 @@ impl ApplicationContext {
 
     pub fn update_zoom_value(&self, new_val: f32) {
         self.gen_ctx.borrow_mut().app_settings.items_zoom = new_val;
-    }
-
-    pub fn hide_system_files(&self) -> bool {
-        self.gen_ctx.borrow().app_settings.hide_system_files
     }
 
     pub fn refresh_rate(&self) -> u8 {
@@ -706,9 +723,5 @@ impl ApplicationContext {
 
     pub fn show_parents(&self) -> bool {
         self.gen_ctx.borrow().app_settings.show_parents
-    }
-
-    pub fn show_extensions(&self) -> bool {
-        self.gen_ctx.borrow().app_settings.show_extensions
     }
 }

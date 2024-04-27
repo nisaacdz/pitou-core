@@ -68,7 +68,7 @@ impl SearchOptions {
             depth: 6,
             search_type: SearchType::MatchMiddle(key),
             skip_errors: true,
-            max_finds: usize::MAX,
+            max_finds: 100,
         }
     }
 }
@@ -149,11 +149,17 @@ pub mod stream {
     use crate::{msg::SearchMsg, PitouFile};
     use tokio::{sync::Mutex, task::JoinHandle};
 
+    type COUNT = Mutex<Option<usize>>;
     type QUEUE = Mutex<Option<LinkedList<PitouFile>>>;
     type SPAWNS = Mutex<LinkedList<JoinHandle<()>>>;
 
     static HANDLES: OnceLock<SPAWNS> = OnceLock::new();
     static STREAM: OnceLock<QUEUE> = OnceLock::new();
+    static FINDS: OnceLock<COUNT> = OnceLock::new();
+
+    fn get_finds() -> &'static COUNT {
+        FINDS.get_or_init(|| Mutex::new(None))
+    }
 
     fn get_handles() -> &'static SPAWNS {
         HANDLES.get_or_init(|| Mutex::new(LinkedList::new()))
@@ -163,16 +169,48 @@ pub mod stream {
         STREAM.get_or_init(|| Mutex::new(None))
     }
 
-    pub async fn is_active() -> bool {
-        get_stream().lock().await.is_some()
+    /// decrements the count and returns true if the max_finds has not yet been exhusted
+    /// Automatically closes the finds if the count has dropped to zero.
+    async fn count_and_proceed() -> bool {
+        match &mut *get_finds().lock().await {
+            Some(count) => {
+                if *count == 0 {
+                    false
+                } else {
+                    *count -= 1;
+                    true
+                }
+            }
+            None => false,
+        }
     }
 
+    /// checks if the strema was ended abruptly from outside
+    pub async fn is_terminated() -> bool {
+        get_stream().lock().await.is_none()
+    }
+
+    #[allow(unused)]
+    /// checks if the stream has completed its task
+    async fn has_finished() -> bool {
+        get_finds().lock().await.is_none()
+    }
+
+    /// used for ending the stream from within
+    async fn finish_stream() {
+        get_finds().lock().await.take();
+    }
+
+    /// used for ending the stream from outside
     pub async fn terminate_stream() {
         get_stream().lock().await.take();
     }
 
-    pub async fn begin_stream() {
-        let _ = get_stream().lock().await.insert(LinkedList::new());
+    pub async fn begin_stream(max_finds: usize) {
+        tokio::join! {
+            async move { let _ = get_stream().lock().await.insert(LinkedList::new()); },
+            async move { let _ = get_finds().lock().await.insert(max_finds); }
+        };
     }
 
     pub async fn read() -> SearchMsg {
@@ -185,27 +223,36 @@ pub mod stream {
     }
 
     pub async fn write(find: PitouFile) {
-        get_stream()
-            .lock()
-            .await
-            .as_mut()
-            .map(|l| l.push_back(find));
+        if count_and_proceed().await {
+            get_stream()
+                .lock()
+                .await
+                .as_mut()
+                .map(|l| l.push_back(find));
+        } else {
+            tokio::join! {
+                finish_stream(),
+                abort_remaining_ops()
+            };
+        }
     }
 
     pub async fn append_handle(handle: JoinHandle<()>) {
         get_handles().lock().await.push_back(handle);
     }
 
-    pub async fn abort() {
+    pub async fn abort_remaining_ops() {
         for handle in get_handles().lock().await.split_off(0).into_iter().rev() {
             handle.abort()
         }
     }
 
+    //TODO erroneous code leads to forever wait
     pub async fn wait_for_all_ops() {
-        for handle in get_handles().lock().await.split_off(0).into_iter().rev() {
-            let _ = handle.await;
-        }
+        // for handle in get_handles().lock().await.split_off(0).into_iter().rev() {
+        //     let _ = handle.await;
+        // }
+        ()
     }
 }
 
@@ -253,14 +300,14 @@ impl SearchVariables {
     }
 }
 
-#[allow(unused)]
 pub async fn search(options: SearchOptions) {
     let hardware_accelerate = options.hardware_accelerate;
+    let max_finds = options.max_finds;
     let (variables, directory) = options.into();
     if variables.filter.all_filtered() {
         return;
     }
-    stream::begin_stream().await;
+    stream::begin_stream(max_finds).await;
     tokio::spawn(async move {
         recursive_search(directory, variables).await;
         stream::terminate_stream().await;
@@ -272,16 +319,17 @@ pub async fn search(options: SearchOptions) {
 
 #[async_recursion::async_recursion]
 async fn recursive_search(directory: PathBuf, mut variables: SearchVariables) {
-    if variables.depth == 0 || !stream::is_active().await {
+    if variables.depth == 0 || stream::is_terminated().await {
         return;
     }
     variables.depth -= 1;
-    while let Ok(Some(de)) = tokio::fs::read_dir(&directory)
-        .await
-        .unwrap()
-        .next_entry()
-        .await
-    {
+    let mut read_dir = if let Ok(read_dir) = tokio::fs::read_dir(&directory).await {
+        read_dir
+    } else {
+        return;
+    };
+
+    while let Ok(Some(de)) = read_dir.next_entry().await {
         let file = PitouFile::new(de.path(), de.metadata().await.unwrap());
         if file.is_dir() {
             let vclone = variables.clone();

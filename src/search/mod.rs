@@ -3,15 +3,15 @@ use std::rc::Rc;
 use crate::{PitouFile, PitouFileFilter};
 
 pub struct SimplifiedSearchOptions {
-    pub(crate) search_dir: Rc<PitouFile>,
-    pub(crate) input: String,
-    pub(crate) search_kind: u8,
-    pub(crate) depth: u8,
-    pub(crate) case_sensitive: bool,
-    pub(crate) hardware_accelerate: bool,
-    pub(crate) skip_errors: bool,
-    pub(crate) filter: PitouFileFilter,
-    pub(crate) max_finds: usize,
+    pub search_dir: Rc<PitouFile>,
+    pub input: String,
+    pub search_kind: u8,
+    pub depth: u8,
+    pub case_sensitive: bool,
+    pub hardware_accelerate: bool,
+    pub skip_errors: bool,
+    pub filter: PitouFileFilter,
+    pub max_finds: usize,
 }
 
 impl SimplifiedSearchOptions {
