@@ -322,7 +322,7 @@ impl PitouFileFilter {
     pub fn new() -> Self {
         Self {
             files: true,
-            links: false,
+            links: true,
             dirs: true,
             sys_items: false,
         }
