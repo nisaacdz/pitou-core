@@ -293,9 +293,10 @@ impl From<SearchOptions> for (SearchVariables, PathBuf) {
 
 impl SearchVariables {
     fn include(&self, file: &PitouFile) -> bool {
-        ((file.is_file() && self.filter.include_files())
-            || (file.is_dir() && self.filter.include_dirs())
-            || (file.is_link() && self.filter.include_links()))
+        ((file.is_file() && self.filter.files)
+            || (file.is_dir() && self.filter.dirs)
+            || (file.is_link() && self.filter.links)
+            || (file.is_sys_item() && self.filter.sys_items))
             && self.search_type.matches(file.name(), self.case_sensitive)
     }
 }

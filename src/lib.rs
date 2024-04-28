@@ -112,6 +112,7 @@ pub struct PitouFileMetadata {
     pub created: PitouDateTime,
     pub size: PitouFileSize,
     pub kind: PitouFileKind,
+    pub attribute: u32,
 }
 
 impl PitouFileMetadata {
@@ -121,6 +122,14 @@ impl PitouFileMetadata {
 
     pub fn kind(&self) -> PitouFileKind {
         self.kind
+    }
+
+    pub fn is_sys_item(&self) -> bool {
+        match self.attribute {
+            2 => true,
+            256 => true,
+            _ => false,
+        }
     }
 }
 
@@ -169,6 +178,13 @@ impl PitouFile {
         match &self.metadata {
             None => false,
             Some(metadata) => matches!(metadata.kind, PitouFileKind::Directory),
+        }
+    }
+
+    pub fn is_sys_item(&self) -> bool {
+        match &self.metadata {
+            None => false,
+            Some(metadata) => metadata.is_sys_item(),
         }
     }
 
@@ -299,6 +315,7 @@ pub struct PitouFileFilter {
     pub files: bool,
     pub links: bool,
     pub dirs: bool,
+    pub sys_items: bool,
 }
 
 impl PitouFileFilter {
@@ -307,21 +324,15 @@ impl PitouFileFilter {
             files: true,
             links: false,
             dirs: true,
-        }
-    }
-
-    pub fn include_all() -> Self {
-        Self {
-            files: true,
-            links: true,
-            dirs: true,
+            sys_items: false,
         }
     }
 
     pub fn map(self, file: PitouFile) -> Option<PitouFile> {
-        if (file.is_dir() && self.include_dirs())
-            || (file.is_file() && self.include_files())
-            || (file.is_link() && self.include_links())
+        if (file.is_dir() && self.dirs)
+            || (file.is_file() && self.files)
+            || (file.is_link() && self.links)
+            || (file.is_sys_item() && self.sys_items)
         {
             Some(file)
         } else {
@@ -331,18 +342,6 @@ impl PitouFileFilter {
 
     pub fn all_filtered(self) -> bool {
         !self.dirs && !self.files && !self.links
-    }
-
-    pub fn include_dirs(self) -> bool {
-        self.dirs
-    }
-
-    pub fn include_files(self) -> bool {
-        self.files
-    }
-
-    pub fn include_links(self) -> bool {
-        self.links
     }
 }
 

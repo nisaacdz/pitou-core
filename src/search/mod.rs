@@ -24,8 +24,8 @@ impl SimplifiedSearchOptions {
             case_sensitive: true,
             hardware_accelerate: false,
             skip_errors: true,
-            filter: PitouFileFilter::include_all(),
-            max_finds: 250,
+            filter: PitouFileFilter::new(),
+            max_finds: 100,
         }
     }
 }

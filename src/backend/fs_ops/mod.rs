@@ -1,8 +1,15 @@
-use std::{path::PathBuf, str::FromStr};
+use std::{
+    fs::{FileType, Metadata},
+    os::windows::fs::MetadataExt,
+    path::PathBuf,
+    str::FromStr,
+    time::SystemTime,
+};
 
 use crate::{
-    GeneralFolder, PitouDateTime, PitouDrive, PitouFile, PitouFileFilter, PitouFileMetadata,
-    PitouFilePath, PitouFileSize, PitouFileSort, PitouTrashItem, PitouTrashItemMetadata,
+    GeneralFolder, PitouDateTime, PitouDrive, PitouFile, PitouFileFilter, PitouFileKind,
+    PitouFileMetadata, PitouFilePath, PitouFileSize, PitouFileSort, PitouTrashItem,
+    PitouTrashItemMetadata,
 };
 use chrono::DateTime;
 use fs_extra::dir::CopyOptions;
@@ -175,10 +182,26 @@ pub async fn children(
 
 impl PitouFile {
     pub fn from_pathbuf(path: PathBuf) -> Self {
+        let mut metadata = PitouFileMetadata::attempt(&path);
+        if let Some(metadata) = &mut metadata {
+            if metadata.is_dir() {
+                metadata.size = Self::attempt_count(&path).into();
+            }
+        }
         Self {
-            metadata: PitouFileMetadata::attempt(&path),
+            metadata,
             path: path.into(),
         }
+    }
+
+    fn attempt_count(path: &PathBuf) -> u64 {
+        let mut count = 0;
+        if let Ok(mut read_dir) = std::fs::read_dir(path) {
+            while let Some(_) = read_dir.next() {
+                count += 1;
+            }
+        }
+        count
     }
 }
 
@@ -314,5 +337,52 @@ impl TryFrom<TrashItem> for PitouTrashItem {
             original_path: PitouFilePath::from_pathbuf(original_parent),
             metadata,
         })
+    }
+}
+
+impl From<FileType> for PitouFileKind {
+    fn from(value: FileType) -> Self {
+        if value.is_dir() {
+            Self::Directory
+        } else if value.is_file() {
+            Self::File
+        } else {
+            Self::Link
+        }
+    }
+}
+
+impl PitouFile {
+    pub fn new(path: PathBuf, metadata: Metadata) -> Self {
+        let path = path.into();
+        let metadata = metadata.try_into().ok();
+        Self { path, metadata }
+    }
+}
+
+impl From<SystemTime> for PitouDateTime {
+    fn from(value: SystemTime) -> Self {
+        let millis_epoch = value
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as i64;
+        Self {
+            datetime: DateTime::from_timestamp_millis(millis_epoch)
+                .unwrap()
+                .naive_utc(),
+        }
+    }
+}
+
+impl From<Metadata> for PitouFileMetadata {
+    fn from(value: Metadata) -> Self {
+        Self {
+            modified: value.modified().unwrap().into(),
+            accessed: value.accessed().unwrap().into(),
+            created: value.created().unwrap().into(),
+            size: value.len().into(),
+            kind: value.file_type().into(),
+            attribute: value.file_attributes(),
+        }
     }
 }
