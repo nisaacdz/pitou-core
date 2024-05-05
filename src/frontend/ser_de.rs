@@ -6,7 +6,7 @@ use serde::{
 };
 
 use crate::{
-    search::SimplifiedSearchOptions, GeneralFolder, PitouDrive, PitouDriveKind, PitouFile,
+    msg::SearchMsg, search::SimplifiedSearchOptions, GeneralFolder, PitouDrive, PitouDriveKind, PitouFile,
     PitouFileFilter, PitouFileMetadata, PitouFilePath, PitouTrashItem, PitouTrashItemMetadata,
 };
 
@@ -201,4 +201,21 @@ impl<'d> Deserialize<'d> for GeneralFolder {
 
         Ok(res)
     }
+}
+
+impl<'d> Deserialize<'d> for SearchMsg {
+    fn deserialize<D: Deserializer<'d>>(dz: D) -> Result<Self, D::Error> {
+        use std::collections::LinkedList;
+        #[derive(Deserialize)]
+        enum SearchMsg {
+            Active(LinkedList<PitouFile>),
+            Terminated(LinkedList<PitouFile>),
+        }
+        let smg = SearchMsg::deserialize(dz)?;
+        let real_msg = match smg {
+            SearchMsg::Active(ll) => Self::Active(ll),
+            SearchMsg::Terminated(ll) => Self::Terminated(ll),
+        };
+        Ok(real_msg)
+    } 
 }

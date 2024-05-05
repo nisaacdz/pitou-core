@@ -101,7 +101,13 @@ impl PitouFileSize {
     }
 
     pub fn format_as_dir_entries(&self) -> String {
-        format!("{} items", self.bytes)
+        if self.bytes == 0 {
+            "Empty".to_owned()
+        } else if self.bytes == 1 {
+            "1 item".to_owned()
+        } else{
+            format!("{} items", self.bytes)
+        }
     }
 }
 
@@ -146,6 +152,11 @@ impl PitouDrive {
     pub fn mount_point(&self) -> &PitouFilePath {
         &self.mount_point
     }
+
+    pub fn as_pitou_file(&self) -> PitouFile {
+        let path = self.mount_point().path.clone().into();
+        PitouFile::without_metadata(path)
+    }
 }
 
 impl PartialEq for PitouDrive {
@@ -171,6 +182,14 @@ impl PitouFile {
         Self {
             path,
             metadata: None,
+        }
+    }
+
+    pub fn matches_find(self: &std::rc::Rc<PitouFile>, find: &str) -> Option<std::rc::Rc<PitouFile>> {
+        if contains_ignore_case(find, self.name()) {
+            Some(self.clone())
+        } else {
+            None
         }
     }
 
@@ -310,7 +329,7 @@ impl PitouFileSort {
     }
 }
 
-#[derive(Clone, Copy, Serialize, Deserialize)]
+#[derive(Clone, Copy, Serialize, Deserialize, PartialEq)]
 pub struct PitouFileFilter {
     pub files: bool,
     pub links: bool,
@@ -437,6 +456,11 @@ impl GeneralFolder {
         }
     }
 
+    pub fn as_pitou_file(&self) -> PitouFile {
+        let path =  self.path().path.clone().into();
+        PitouFile::without_metadata(path)
+    }
+
     pub fn name(&self) -> String {
         match self {
             GeneralFolder::DocumentsFolder(_) => String::from("Documents"),
@@ -480,6 +504,10 @@ pub struct AppSettings {
 }
 
 impl AppSettings {
+    pub fn default_refresh_rate() -> u8 {
+        3
+    }
+
     pub fn refresh_rate_as_millis(&self) -> u32 {
         /*
             60 => 250 millis
@@ -492,7 +520,7 @@ impl AppSettings {
 impl Default for AppSettings {
     fn default() -> Self {
         Self {
-            refresh_rate: 20,
+            refresh_rate: Self::default_refresh_rate(),
             show_extensions: true,
             hide_system_files: true,
             show_thumbnails: false,
@@ -508,4 +536,20 @@ impl Default for AppSettings {
 pub struct DirChild {
     name: String,
     metadata: Option<PitouFileMetadata>,
+}
+
+
+fn contains_ignore_case(key: &str, input: &str) -> bool {
+    if key.len() == 0 { return true }
+    if input.len() < key.len() {
+        return false;
+    }
+    (0..=(input.len() - key.len())).any(|b| {
+        (0..key.len()).all(|i| {
+            let (v, u) = (key.as_bytes()[i], input.as_bytes()[b + i]);
+            let fc = if v > 96 && v < 123 { v - 32 } else { v };
+            let sc = if u > 96 && u < 123 { u - 32 } else { u };
+            fc == sc
+        })
+    })
 }

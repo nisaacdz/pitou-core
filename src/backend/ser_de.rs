@@ -2,7 +2,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::{path::PathBuf, rc::Rc};
 
 use crate::{
-    search::SimplifiedSearchOptions, GeneralFolder, PitouDrive, PitouDriveKind, PitouFile,
+    msg::SearchMsg, search::SimplifiedSearchOptions, GeneralFolder, PitouDrive, PitouDriveKind, PitouFile,
     PitouFileFilter, PitouFileMetadata, PitouFilePath, PitouTrashItem, PitouTrashItemMetadata,
 };
 
@@ -195,5 +195,22 @@ impl Serialize for GeneralFolder {
             Self::DownloadsFolder(path) => GeneralFolder::DownloadsFolder(path),
         }
         .serialize(sz)
+    }
+}
+
+impl Serialize for SearchMsg {
+    fn serialize<S: Serializer>(&self, sz: S) -> Result<S::Ok, S::Error> {
+        use std::collections::LinkedList;
+        #[derive(Serialize)]
+        enum SearchMsg<'a> {
+            Active(&'a LinkedList<PitouFile>),
+            Terminated(&'a LinkedList<PitouFile>),
+        }
+        let fake_msg = match self {
+            Self::Active(ll) => SearchMsg::Active(ll),
+            Self::Terminated(ll) => SearchMsg::Terminated(ll),
+        };
+
+        fake_msg.serialize(sz)
     }
 }
