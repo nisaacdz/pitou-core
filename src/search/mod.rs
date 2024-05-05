@@ -1,9 +1,9 @@
 use std::rc::Rc;
 
-use crate::{PitouFile, PitouFileFilter};
+use crate::{FrontendSearchOptions, PitouFile, PitouFileFilter};
 
 pub struct SimplifiedSearchOptions {
-    pub search_dir: Rc<PitouFile>,
+    pub search_dir: PitouFile,
     pub input: String,
     pub search_kind: u8,
     pub depth: u8,
@@ -15,17 +15,17 @@ pub struct SimplifiedSearchOptions {
 }
 
 impl SimplifiedSearchOptions {
-    pub fn default(current_dir: Rc<PitouFile>) -> Self {
+    pub fn build_from(options: FrontendSearchOptions, current_dir: Rc<PitouFile>) -> Self {
         Self {
-            search_dir: current_dir,
-            input: String::new(),
-            search_kind: 1,
-            depth: 6,
-            case_sensitive: true,
-            hardware_accelerate: false,
-            skip_errors: true,
-            filter: PitouFileFilter::new(),
-            max_finds: 100,
+            search_dir: current_dir.clone_inner(),
+            input: options.input,
+            search_kind: options.search_kind,
+            depth: options.depth,
+            case_sensitive: options.case_sensitive,
+            hardware_accelerate: options.hardware_accelerate,
+            skip_errors: options.skip_errors,
+            filter: options.filter,
+            max_finds: options.max_finds,
         }
     }
 }

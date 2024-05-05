@@ -7,24 +7,15 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
-use crate::{AppMenu, AppSettings, ColorTheme, GeneralFolder, ItemsView, PitouDrive, PitouFile, PitouFileFilter, PitouFileSort, PitouTrashItem};
+use crate::{
+    AppMenu, AppSettings, ColorTheme, FrontendSearchOptions, GeneralFolder, ItemsView, PitouDrive,
+    PitouFile, PitouFileFilter, PitouFileSort, PitouTrashItem,
+};
 
 use self::extra::FolderTracker;
 pub mod ser_de;
 
 pub mod extra;
-
-#[derive(PartialEq, Clone)]
-pub struct FrontendSearchOptions {
-    pub input: String,
-    pub search_kind: u8,
-    pub depth: u8,
-    pub case_sensitive: bool,
-    pub hardware_accelerate: bool,
-    pub skip_errors: bool,
-    pub filter: PitouFileFilter,
-    pub max_finds: usize,
-}
 
 impl FrontendSearchOptions {
     pub fn init() -> Self {
@@ -51,6 +42,13 @@ pub struct TabCtx {
 }
 
 impl TabCtx {
+    pub fn get_or_init_search_results(&self) -> Rc<RefCell<Vec<Rc<PitouFile>>>> {
+        self.search_results
+            .borrow_mut()
+            .get_or_insert_with(|| Rc::new(RefCell::new(Vec::new())))
+            .clone()
+    }
+
     pub fn search_results(&self) -> Option<Rc<RefCell<Vec<Rc<PitouFile>>>>> {
         (*self.search_results.borrow()).clone()
     }
@@ -59,7 +57,7 @@ impl TabCtx {
         (*self.search_results.borrow_mut()) = Some(Rc::new(RefCell::new(Vec::new())))
     }
 
-    pub fn append_search_result(&self, items: impl Iterator<Item=Rc<PitouFile>>) {
+    pub fn append_search_result(&self, items: impl Iterator<Item = Rc<PitouFile>>) {
         let mut bm = self.search_results.borrow_mut();
         match &mut *bm {
             Some(list) => list.borrow_mut().extend(items),
@@ -335,8 +333,13 @@ impl StaticData {
 
     pub fn are_all_selected_search_results(&self, items: Rc<RefCell<Vec<Rc<PitouFile>>>>) -> bool {
         if let Selections::SearchResults(sr) = &*self.selections.borrow() {
-            if sr.len() < items.borrow().len() { return false }
-            items.borrow().iter().all(|item| sr.contains(&PitouFileWrap::new(item.clone())))
+            if sr.len() < items.borrow().len() {
+                return false;
+            }
+            items
+                .borrow()
+                .iter()
+                .all(|item| sr.contains(&PitouFileWrap::new(item.clone())))
         } else {
             false
         }
@@ -344,8 +347,12 @@ impl StaticData {
 
     pub fn are_all_selected_folder_entries(&self, items: Rc<Vec<Rc<PitouFile>>>) -> bool {
         if let Selections::FolderEntries(fe) = &*self.selections.borrow() {
-            if fe.items.len() < items.len() { return false }
-            items.iter().all(|item| fe.items.contains(&FolderEntry::new(item.clone())))
+            if fe.items.len() < items.len() {
+                return false;
+            }
+            items
+                .iter()
+                .all(|item| fe.items.contains(&FolderEntry::new(item.clone())))
         } else {
             false
         }
@@ -368,7 +375,9 @@ impl StaticData {
             Selections::Drives(di) => di.iter().next().map(|v| Rc::new(v.drive.as_pitou_file())),
             Selections::FolderEntries(fe) => fe.items.iter().next().map(|v| v.item.clone()),
             Selections::SearchResults(sr) => sr.iter().next().map(|v| v.inner.clone()),
-            Selections::GeneralFolders(gf) => gf.iter().next().map(|v| Rc::new(v.folder.as_pitou_file())),
+            Selections::GeneralFolders(gf) => {
+                gf.iter().next().map(|v| Rc::new(v.folder.as_pitou_file()))
+            }
             Selections::RecentFiles(rf) => rf.iter().next().map(|v| v.inner.clone()),
             Selections::PinnedFiles(pf) => pf.iter().next().map(|v| v.inner.clone()),
             Selections::TrashItems(_) => None,

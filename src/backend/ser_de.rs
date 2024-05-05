@@ -2,8 +2,9 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::{path::PathBuf, rc::Rc};
 
 use crate::{
-    msg::SearchMsg, search::SimplifiedSearchOptions, GeneralFolder, PitouDrive, PitouDriveKind, PitouFile,
-    PitouFileFilter, PitouFileMetadata, PitouFilePath, PitouTrashItem, PitouTrashItemMetadata,
+    msg::SearchMsg, search::SimplifiedSearchOptions, GeneralFolder, PitouDrive, PitouDriveKind,
+    PitouFile, PitouFileFilter, PitouFileMetadata, PitouFilePath, PitouTrashItem,
+    PitouTrashItemMetadata,
 };
 
 const BMS: u8 = b'\\';
@@ -106,6 +107,7 @@ fn deserialize_pathbuf<'d, D: Deserializer<'d>>(dz: D) -> Result<PathBuf, D::Err
 }
 
 mod deserialize_rc_pitoufile {
+    #![allow(unused)]
     use super::*;
     pub fn deserialize<'d, D: Deserializer<'d>>(dz: D) -> Result<Rc<PitouFile>, D::Error> {
         let path = PitouFilePath::deserialize(dz)?;
@@ -121,8 +123,7 @@ impl<'d> Deserialize<'d> for SimplifiedSearchOptions {
     fn deserialize<D: Deserializer<'d>>(dz: D) -> Result<Self, D::Error> {
         #[derive(Deserialize)]
         struct SimplifiedSearchOptions {
-            #[serde(with = "deserialize_rc_pitoufile")]
-            search_dir: Rc<PitouFile>,
+            search_dir: PitouFile,
             hardware_accelerate: bool,
             filter: PitouFileFilter,
             case_sensitive: bool,

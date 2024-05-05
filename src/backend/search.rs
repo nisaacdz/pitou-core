@@ -1,4 +1,4 @@
-use std::{path::PathBuf, rc::Rc, sync::Arc};
+use std::{path::PathBuf, sync::Arc};
 
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -37,18 +37,19 @@ pub enum SearchType {
 impl SearchType {
     pub(crate) fn parse_regex(search_kind: u8, search_key: String) -> Option<Self> {
         match search_kind {
-            0 => Some(SearchType::MatchBegining(search_key)),
-            1 => Some(SearchType::MatchEnding(search_key)),
-            2 => Some(SearchType::MatchMiddle(search_key)),
-            _ => regex::Regex::new(&search_key)
+            0 => regex::Regex::new(&search_key)
                 .map(|r| SearchType::Regex(r))
                 .ok(),
+            1 => Some(SearchType::MatchBegining(search_key)),
+            2 => Some(SearchType::MatchEnding(search_key)),
+            3 => Some(SearchType::MatchMiddle(search_key)),
+            _ => None,
         }
     }
 }
 
 pub struct SearchOptions {
-    pub(crate) search_dir: Rc<PitouFile>,
+    pub(crate) search_dir: PitouFile,
     pub(crate) hardware_accelerate: bool,
     pub(crate) filter: PitouFileFilter,
     pub(crate) case_sensitive: bool,
@@ -56,21 +57,6 @@ pub struct SearchOptions {
     pub(crate) search_type: SearchType,
     pub(crate) skip_errors: bool,
     pub(crate) max_finds: usize,
-}
-
-impl SearchOptions {
-    pub fn new(search_dir: Rc<PitouFile>, key: String) -> Self {
-        Self {
-            search_dir,
-            filter: PitouFileFilter::new(),
-            hardware_accelerate: false,
-            case_sensitive: true,
-            depth: 6,
-            search_type: SearchType::MatchMiddle(key),
-            skip_errors: true,
-            max_finds: 100,
-        }
-    }
 }
 
 impl SearchType {
@@ -286,7 +272,7 @@ impl From<SearchOptions> for (SearchVariables, PathBuf) {
                 skip_errors,
                 search_type: Arc::new(search_type),
             },
-            search_dir.path.path.clone(),
+            search_dir.path.path,
         )
     }
 }

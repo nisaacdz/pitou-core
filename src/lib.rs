@@ -105,7 +105,7 @@ impl PitouFileSize {
             "Empty".to_owned()
         } else if self.bytes == 1 {
             "1 item".to_owned()
-        } else{
+        } else {
             format!("{} items", self.bytes)
         }
     }
@@ -178,6 +178,11 @@ pub struct PitouFile {
 }
 
 impl PitouFile {
+    pub fn clone_inner(self: &std::rc::Rc<PitouFile>) -> Self {
+        let path = self.path.path.clone();
+        Self::without_metadata(PitouFilePath::from_pathbuf(path))
+    }
+
     pub fn without_metadata(path: PitouFilePath) -> Self {
         Self {
             path,
@@ -185,7 +190,10 @@ impl PitouFile {
         }
     }
 
-    pub fn matches_find(self: &std::rc::Rc<PitouFile>, find: &str) -> Option<std::rc::Rc<PitouFile>> {
+    pub fn matches_find(
+        self: &std::rc::Rc<PitouFile>,
+        find: &str,
+    ) -> Option<std::rc::Rc<PitouFile>> {
         if contains_ignore_case(find, self.name()) {
             Some(self.clone())
         } else {
@@ -457,7 +465,7 @@ impl GeneralFolder {
     }
 
     pub fn as_pitou_file(&self) -> PitouFile {
-        let path =  self.path().path.clone().into();
+        let path = self.path().path.clone().into();
         PitouFile::without_metadata(path)
     }
 
@@ -538,9 +546,10 @@ pub struct DirChild {
     metadata: Option<PitouFileMetadata>,
 }
 
-
 fn contains_ignore_case(key: &str, input: &str) -> bool {
-    if key.len() == 0 { return true }
+    if key.len() == 0 {
+        return true;
+    }
     if input.len() < key.len() {
         return false;
     }
@@ -552,4 +561,16 @@ fn contains_ignore_case(key: &str, input: &str) -> bool {
             fc == sc
         })
     })
+}
+
+#[derive(PartialEq, Clone)]
+pub struct FrontendSearchOptions {
+    pub input: String,
+    pub search_kind: u8,
+    pub depth: u8,
+    pub case_sensitive: bool,
+    pub hardware_accelerate: bool,
+    pub skip_errors: bool,
+    pub filter: PitouFileFilter,
+    pub max_finds: usize,
 }

@@ -6,8 +6,9 @@ use serde::{
 };
 
 use crate::{
-    msg::SearchMsg, search::SimplifiedSearchOptions, GeneralFolder, PitouDrive, PitouDriveKind, PitouFile,
-    PitouFileFilter, PitouFileMetadata, PitouFilePath, PitouTrashItem, PitouTrashItemMetadata,
+    msg::SearchMsg, search::SimplifiedSearchOptions, GeneralFolder, PitouDrive, PitouDriveKind,
+    PitouFile, PitouFileFilter, PitouFileMetadata, PitouFilePath, PitouTrashItem,
+    PitouTrashItemMetadata,
 };
 
 use super::extra::DirChildren;
@@ -122,8 +123,8 @@ impl<'d> Deserialize<'d> for DirChildren {
 }
 
 mod serialize_rc_pitoufile {
+    #![allow(unused)]
     use super::*;
-
     pub fn serialize<S: Serializer>(item: &Rc<PitouFile>, sz: S) -> Result<S::Ok, S::Error> {
         PitouFilePath::serialize(&item.path, sz)
     }
@@ -132,8 +133,7 @@ impl Serialize for SimplifiedSearchOptions {
     fn serialize<S: Serializer>(&self, sz: S) -> Result<S::Ok, S::Error> {
         #[derive(Serialize)]
         struct SimplifiedSearchOptions<'a> {
-            #[serde(with = "serialize_rc_pitoufile")]
-            search_dir: &'a Rc<PitouFile>,
+            search_dir: &'a PitouFile,
             hardware_accelerate: bool,
             filter: PitouFileFilter,
             case_sensitive: bool,
@@ -217,5 +217,5 @@ impl<'d> Deserialize<'d> for SearchMsg {
             SearchMsg::Terminated(ll) => Self::Terminated(ll),
         };
         Ok(real_msg)
-    } 
+    }
 }
