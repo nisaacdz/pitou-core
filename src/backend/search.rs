@@ -1,13 +1,10 @@
 use std::{path::PathBuf, sync::Arc};
 
-use regex::Regex;
-use serde::{Deserialize, Serialize};
-
-use crate::{search::SimplifiedSearchOptions, PitouFile, PitouFileFilter};
+use crate::{search::SimplifiedSearchOptions, PitouFile, PitouFileFilter, SearchType};
 
 impl SimplifiedSearchOptions {
     pub fn try_into(self) -> Option<SearchOptions> {
-        if let Some(search_type) = SearchType::parse_regex(self.search_kind, self.input) {
+        if let Some(search_type) = SearchType::parse_if_regex(self.search_kind, self.input) {
             let obj = SearchOptions {
                 search_dir: self.search_dir,
                 filter: self.filter,
@@ -25,17 +22,8 @@ impl SimplifiedSearchOptions {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize)]
-pub enum SearchType {
-    #[serde(with = "serde_regex")]
-    Regex(Regex),
-    MatchBegining(String),
-    MatchMiddle(String),
-    MatchEnding(String),
-}
-
 impl SearchType {
-    pub(crate) fn parse_regex(search_kind: u8, search_key: String) -> Option<Self> {
+    pub(crate) fn parse_if_regex(search_kind: u8, search_key: String) -> Option<Self> {
         match search_kind {
             0 => regex::Regex::new(&search_key)
                 .map(|r| SearchType::Regex(r))
@@ -86,47 +74,6 @@ impl SearchType {
             }
         }
     }
-
-    fn starts_with_ignore_case(key: &str, input: &str) -> bool {
-        if input.len() < key.len() {
-            return false;
-        }
-        (0..key.len()).all(|i| {
-            let (v, u) = (key.as_bytes()[i], input.as_bytes()[i]);
-            let fc = if v > 96 && v < 123 { v - 32 } else { v };
-            let sc = if u > 96 && u < 123 { u - 32 } else { u };
-            fc == sc
-        })
-    }
-
-    fn ends_with_ignore_case(key: &str, input: &str) -> bool {
-        if input.len() < key.len() {
-            return false;
-        }
-        (0..key.len()).all(|i| {
-            let (v, u) = (
-                key.as_bytes()[key.len() - i - 1],
-                input.as_bytes()[input.len() - i - 1],
-            );
-            let fc = if v > 96 && v < 123 { v - 32 } else { v };
-            let sc = if u > 96 && u < 123 { u - 32 } else { u };
-            fc == sc
-        })
-    }
-
-    fn contains_ignore_case(key: &str, input: &str) -> bool {
-        if input.len() < key.len() {
-            return false;
-        }
-        (0..=(input.len() - key.len())).any(|b| {
-            (0..key.len()).all(|i| {
-                let (v, u) = (key.as_bytes()[i], input.as_bytes()[b + i]);
-                let fc = if v > 96 && v < 123 { v - 32 } else { v };
-                let sc = if u > 96 && u < 123 { u - 32 } else { u };
-                fc == sc
-            })
-        })
-    }
 }
 
 pub mod stream {
@@ -157,34 +104,48 @@ pub mod stream {
 
     /// decrements the count and returns true if the max_finds has not yet been exhusted
     /// Automatically closes the finds if the count has dropped to zero.
-    async fn count_and_proceed() -> bool {
+    async fn count_and_proceed() -> Option<bool> {
         match &mut *get_finds().lock().await {
             Some(count) => {
                 if *count == 0 {
-                    false
+                    Some(false)
                 } else {
                     *count -= 1;
-                    true
+                    Some(true)
                 }
             }
-            None => false,
+            None => None,
         }
     }
 
-    /// checks if the strema was ended abruptly from outside
+    /// checks if the stream was ended abruptly from outside
     pub async fn is_terminated() -> bool {
         get_stream().lock().await.is_none()
     }
 
-    #[allow(unused)]
     /// checks if the stream has completed its task
-    async fn has_finished() -> bool {
+    pub(crate) async fn has_finished() -> bool {
         get_finds().lock().await.is_none()
     }
 
     /// used for ending the stream from within
-    async fn finish_stream() {
+    pub(crate) async fn finish_stream() {
         get_finds().lock().await.take();
+    }
+
+    pub(crate) async fn proceed_to_finish_stream() {
+        loop {
+            let mut hlock = get_handles().lock().await;
+            if hlock.is_empty() {
+                break;
+            }
+            let handles = hlock.split_off(0);
+            std::mem::drop(hlock);
+            for handle in handles.into_iter().rev() {
+                let _ = handle.await;
+            }
+        }
+        finish_stream().await;
     }
 
     /// used for ending the stream from outside
@@ -192,7 +153,7 @@ pub mod stream {
         get_stream().lock().await.take();
     }
 
-    pub async fn begin_stream(max_finds: usize) {
+    pub async fn configure_stream(max_finds: usize) {
         tokio::join! {
             async move { let _ = get_stream().lock().await.insert(LinkedList::new()); },
             async move { let _ = get_finds().lock().await.insert(max_finds); }
@@ -200,26 +161,39 @@ pub mod stream {
     }
 
     pub async fn read() -> SearchMsg {
-        get_stream()
-            .lock()
-            .await
-            .as_mut()
-            .map(|l| SearchMsg::Active(l.split_off(0)))
-            .unwrap_or(SearchMsg::Terminated(LinkedList::new()))
-    }
-
-    pub async fn write(find: PitouFile) {
-        if count_and_proceed().await {
+        if has_finished().await {
             get_stream()
                 .lock()
                 .await
                 .as_mut()
-                .map(|l| l.push_back(find));
+                .map(|l| SearchMsg::Terminated(l.split_off(0)))
+                .unwrap_or(SearchMsg::Terminated(LinkedList::new()))
         } else {
-            tokio::join! {
-                finish_stream(),
-                abort_remaining_ops()
-            };
+            get_stream()
+                .lock()
+                .await
+                .as_mut()
+                .map(|l| SearchMsg::Active(l.split_off(0)))
+                .unwrap_or(SearchMsg::Terminated(LinkedList::new()))
+        }
+    }
+
+    pub async fn write(find: PitouFile) {
+        match count_and_proceed().await {
+            Some(true) => {
+                get_stream()
+                    .lock()
+                    .await
+                    .as_mut()
+                    .map(|l| l.push_back(find));
+            }
+            Some(false) => {
+                tokio::join! {
+                    finish_stream(),
+                    abort_remaining_ops()
+                };
+            }
+            None => return,
         }
     }
 
@@ -233,11 +207,7 @@ pub mod stream {
         }
     }
 
-    //TODO erroneous code leads to forever wait
     pub async fn wait_for_all_ops() {
-        // for handle in get_handles().lock().await.split_off(0).into_iter().rev() {
-        //     let _ = handle.await;
-        // }
         ()
     }
 }
@@ -294,10 +264,10 @@ pub async fn search(options: SearchOptions) {
     if variables.filter.all_filtered() {
         return;
     }
-    stream::begin_stream(max_finds).await;
+    stream::configure_stream(max_finds).await;
     tokio::spawn(async move {
         recursive_search(directory, variables).await;
-        stream::terminate_stream().await;
+        stream::proceed_to_finish_stream().await;
         if hardware_accelerate {
             stream::wait_for_all_ops().await;
         }

@@ -21,13 +21,13 @@ impl FrontendSearchOptions {
     pub fn init() -> Self {
         Self {
             input: String::new(),
-            search_kind: 0,
+            search_kind: 1,
             depth: 6,
             case_sensitive: false,
             hardware_accelerate: false,
             skip_errors: true,
             filter: PitouFileFilter::new(),
-            max_finds: 50,
+            max_finds: 25,
         }
     }
 }
@@ -36,12 +36,16 @@ pub struct TabCtx {
     pub folder_tracker: RefCell<Option<FolderTracker>>,
     pub current_menu: RefCell<AppMenu>,
     pub search_results: RefCell<Option<Rc<RefCell<Vec<Rc<PitouFile>>>>>>,
-    pub search_options: RefCell<Option<FrontendSearchOptions>>,
+    pub search_options: RefCell<FrontendSearchOptions>,
     pub dir_children: RefCell<Option<Rc<Vec<Rc<PitouFile>>>>>,
     pub dir_siblings: RefCell<Option<Rc<Vec<Rc<PitouFile>>>>>,
 }
 
 impl TabCtx {
+    pub fn search_options(&self) -> FrontendSearchOptions {
+        (*self.search_options.borrow()).clone()
+    }
+
     pub fn get_or_init_search_results(&self) -> Rc<RefCell<Vec<Rc<PitouFile>>>> {
         self.search_results
             .borrow_mut()
@@ -151,13 +155,14 @@ impl TabCtx {
         *self.dir_siblings.borrow_mut() = siblings;
     }
 
-    pub fn update_search_options(&self, search_options: Option<FrontendSearchOptions>) {
-        *self.search_options.borrow_mut() = search_options;
+    pub fn update_search_options(&self, update: impl FnOnce(&mut FrontendSearchOptions)) {
+        let mut bm = self.search_options.borrow_mut();
+        update(&mut *bm)
     }
 
     pub fn new_with_dir(current_dir: Rc<PitouFile>, menu: AppMenu) -> Self {
         Self {
-            search_options: RefCell::new(Some(FrontendSearchOptions::init())),
+            search_options: RefCell::new(FrontendSearchOptions::init()),
             folder_tracker: RefCell::new(Some(FolderTracker::new(current_dir))),
             current_menu: RefCell::new(menu),
             search_results: RefCell::new(None),
@@ -168,7 +173,7 @@ impl TabCtx {
 
     pub fn default() -> Self {
         Self {
-            search_options: RefCell::new(None),
+            search_options: RefCell::new(FrontendSearchOptions::init()),
             folder_tracker: RefCell::new(None),
             current_menu: RefCell::new(AppMenu::Home),
             search_results: RefCell::new(None),

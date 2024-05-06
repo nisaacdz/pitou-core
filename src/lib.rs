@@ -1,6 +1,6 @@
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
-use std::{cmp::Reverse, path::PathBuf};
+use std::{cmp::Reverse, path::PathBuf, rc::Rc};
 mod extra;
 
 #[cfg(feature = "frontend")]
@@ -178,7 +178,7 @@ pub struct PitouFile {
 }
 
 impl PitouFile {
-    pub fn clone_inner(self: &std::rc::Rc<PitouFile>) -> Self {
+    pub fn clone_inner(self: &Rc<PitouFile>) -> Self {
         let path = self.path.path.clone();
         Self::without_metadata(PitouFilePath::from_pathbuf(path))
     }
@@ -190,11 +190,12 @@ impl PitouFile {
         }
     }
 
-    pub fn matches_find(
-        self: &std::rc::Rc<PitouFile>,
-        find: &str,
-    ) -> Option<std::rc::Rc<PitouFile>> {
-        if contains_ignore_case(find, self.name()) {
+    pub fn full_path_str(&self) -> &str {
+        self.path.path.to_str().unwrap_or_default()
+    }
+
+    pub fn matches_find(self: &Rc<PitouFile>, key: &str) -> Option<Rc<PitouFile>> {
+        if SearchType::contains_ignore_case(key, self.name()) {
             Some(self.clone())
         } else {
             None
@@ -546,23 +547,6 @@ pub struct DirChild {
     metadata: Option<PitouFileMetadata>,
 }
 
-fn contains_ignore_case(key: &str, input: &str) -> bool {
-    if key.len() == 0 {
-        return true;
-    }
-    if input.len() < key.len() {
-        return false;
-    }
-    (0..=(input.len() - key.len())).any(|b| {
-        (0..key.len()).all(|i| {
-            let (v, u) = (key.as_bytes()[i], input.as_bytes()[b + i]);
-            let fc = if v > 96 && v < 123 { v - 32 } else { v };
-            let sc = if u > 96 && u < 123 { u - 32 } else { u };
-            fc == sc
-        })
-    })
-}
-
 #[derive(PartialEq, Clone)]
 pub struct FrontendSearchOptions {
     pub input: String,
@@ -573,4 +557,49 @@ pub struct FrontendSearchOptions {
     pub skip_errors: bool,
     pub filter: PitouFileFilter,
     pub max_finds: usize,
+}
+
+#[derive(Clone)]
+pub enum SearchType {
+    Regex(regex::Regex),
+    MatchBegining(String),
+    MatchMiddle(String),
+    MatchEnding(String),
+}
+
+impl SearchType {
+    pub(crate) fn starts_with_ignore_case(key: &str, input: &str) -> bool {
+        if input.len() < key.len() {
+            return false;
+        }
+        input
+            .chars()
+            .take(key.len())
+            .zip(key.chars())
+            .all(|(w, k)| w.eq_ignore_ascii_case(&k))
+    }
+
+    pub(crate) fn ends_with_ignore_case(key: &str, input: &str) -> bool {
+        if input.len() < key.len() {
+            return false;
+        }
+        input
+            .chars()
+            .rev()
+            .take(key.len())
+            .zip(key.chars().rev())
+            .all(|(a, b)| a.eq_ignore_ascii_case(&b))
+    }
+
+    pub(crate) fn contains_ignore_case(key: &str, input: &str) -> bool {
+        let key = key.as_bytes();
+        let input = input.as_bytes();
+        if input.len() < key.len() {
+            return false;
+        }
+        input.windows(key.len()).any(|window| {
+            (0..window.len())
+                .all(|idx| (key[idx] as char).eq_ignore_ascii_case(&(window[idx] as char)))
+        })
+    }
 }
