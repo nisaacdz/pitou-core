@@ -128,6 +128,10 @@ pub mod stream {
         get_finds().lock().await.is_none()
     }
 
+    pub(crate) async fn handles_finished() -> bool {
+        get_handles().lock().await.is_empty()
+    }
+
     /// used for ending the stream from within
     pub(crate) async fn finish_stream() {
         get_finds().lock().await.take();
@@ -161,7 +165,7 @@ pub mod stream {
     }
 
     pub async fn read() -> SearchMsg {
-        if has_finished().await {
+        if handles_finished().await {
             get_stream()
                 .lock()
                 .await
@@ -276,7 +280,7 @@ pub async fn search(options: SearchOptions) {
 
 #[async_recursion::async_recursion]
 async fn recursive_search(directory: PathBuf, mut variables: SearchVariables) {
-    if variables.depth == 0 || stream::is_terminated().await {
+    if variables.depth == 0 || stream::is_terminated().await || stream::has_finished().await {
         return;
     }
     variables.depth -= 1;

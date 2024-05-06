@@ -568,7 +568,7 @@ pub enum SearchType {
 }
 
 impl SearchType {
-    pub(crate) fn starts_with_ignore_case(key: &str, input: &str) -> bool {
+    pub fn starts_with_ignore_case(key: &str, input: &str) -> bool {
         if input.len() < key.len() {
             return false;
         }
@@ -579,7 +579,7 @@ impl SearchType {
             .all(|(w, k)| w.eq_ignore_ascii_case(&k))
     }
 
-    pub(crate) fn ends_with_ignore_case(key: &str, input: &str) -> bool {
+    pub fn ends_with_ignore_case(key: &str, input: &str) -> bool {
         if input.len() < key.len() {
             return false;
         }
@@ -591,7 +591,7 @@ impl SearchType {
             .all(|(a, b)| a.eq_ignore_ascii_case(&b))
     }
 
-    pub(crate) fn contains_ignore_case(key: &str, input: &str) -> bool {
+    pub fn contains_ignore_case(key: &str, input: &str) -> bool {
         let key = key.as_bytes();
         let input = input.as_bytes();
         if input.len() < key.len() {
