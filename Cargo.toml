@@ -22,4 +22,4 @@ trash = { version = "4.0.0", optional = true }
 [features]
 backend = ["tokio", "async-recursion", "trash", "fs_extra", "open", "sysinfo", "dirs", "open_with"]
 frontend = []
-default = ["backend"]
+default = []
