@@ -118,23 +118,13 @@ pub mod stream {
         }
     }
 
-    /// checks if the stream was ended abruptly from outside
-    pub async fn is_terminated() -> bool {
-        get_stream().lock().await.is_none()
-    }
-
-    /// checks if the stream has completed its task
-    pub(crate) async fn has_finished() -> bool {
-        get_finds().lock().await.is_none()
-    }
-
-    pub(crate) async fn handles_finished() -> bool {
-        get_handles().lock().await.is_empty()
-    }
-
-    /// used for ending the stream from within
-    pub(crate) async fn finish_stream() {
+    pub async fn terminate_stream() {
         get_finds().lock().await.take();
+    }
+
+    /// checks if the stream is terminated
+    pub async fn is_terminated() -> bool {
+        get_finds().lock().await.is_none()
     }
 
     pub(crate) async fn proceed_to_finish_stream() {
@@ -149,23 +139,19 @@ pub mod stream {
                 let _ = handle.await;
             }
         }
-        finish_stream().await;
+        terminate_stream().await;
     }
 
-    /// used for ending the stream from outside
-    pub async fn terminate_stream() {
-        get_stream().lock().await.take();
-    }
-
-    pub async fn configure_stream(max_finds: usize) {
+    pub(crate) async fn configure_stream(max_finds: usize) {
         tokio::join! {
             async move { let _ = get_stream().lock().await.insert(LinkedList::new()); },
-            async move { let _ = get_finds().lock().await.insert(max_finds); }
+            async move { let _ = get_finds().lock().await.insert(max_finds); },
+            async move { let _ = get_handles().lock().await.clear(); }
         };
     }
 
     pub async fn read() -> SearchMsg {
-        if handles_finished().await {
+        if is_terminated().await {
             get_stream()
                 .lock()
                 .await
@@ -193,7 +179,7 @@ pub mod stream {
             }
             Some(false) => {
                 tokio::join! {
-                    finish_stream(),
+                    terminate_stream(),
                     abort_remaining_ops()
                 };
             }
@@ -280,7 +266,7 @@ pub async fn search(options: SearchOptions) {
 
 #[async_recursion::async_recursion]
 async fn recursive_search(directory: PathBuf, mut variables: SearchVariables) {
-    if variables.depth == 0 || stream::is_terminated().await || stream::has_finished().await {
+    if variables.depth == 0 || stream::is_terminated().await {
         return;
     }
     variables.depth -= 1;
