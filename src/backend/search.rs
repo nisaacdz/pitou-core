@@ -82,7 +82,7 @@ pub mod stream {
     use crate::{msg::SearchMsg, PitouFile};
     use tokio::{sync::Mutex, task::JoinHandle};
 
-    type COUNT = Mutex<Option<usize>>;
+    type COUNT = Mutex<usize>;
     type QUEUE = Mutex<Option<LinkedList<PitouFile>>>;
     type SPAWNS = Mutex<LinkedList<JoinHandle<()>>>;
 
@@ -91,7 +91,7 @@ pub mod stream {
     static FINDS: OnceLock<COUNT> = OnceLock::new();
 
     fn get_finds() -> &'static COUNT {
-        FINDS.get_or_init(|| Mutex::new(None))
+        FINDS.get_or_init(|| Mutex::new(0))
     }
 
     fn get_handles() -> &'static SPAWNS {
@@ -104,27 +104,23 @@ pub mod stream {
 
     /// decrements the count and returns true if the max_finds has not yet been exhusted
     /// Automatically closes the finds if the count has dropped to zero.
-    async fn count_and_proceed() -> Option<bool> {
-        match &mut *get_finds().lock().await {
-            Some(count) => {
-                if *count == 0 {
-                    Some(false)
-                } else {
-                    *count -= 1;
-                    Some(true)
-                }
-            }
-            None => None,
+    async fn count_and_proceed() -> bool {
+        let mut c_val = get_finds().lock().await;
+        if *c_val == 0 {
+            false
+        } else {
+            *c_val -= 1;
+            true
         }
     }
 
     pub async fn terminate_stream() {
-        get_finds().lock().await.take();
+        *get_finds().lock().await = 0;
     }
 
     /// checks if the stream is terminated
     pub async fn is_terminated() -> bool {
-        get_finds().lock().await.is_none()
+        *get_finds().lock().await == 0
     }
 
     pub(crate) async fn proceed_to_finish_stream() {
@@ -145,7 +141,7 @@ pub mod stream {
     pub(crate) async fn configure_stream(max_finds: usize) {
         tokio::join! {
             async move { let _ = get_stream().lock().await.insert(LinkedList::new()); },
-            async move { let _ = get_finds().lock().await.insert(max_finds); },
+            async move { *get_finds().lock().await = max_finds },
             async move { let _ = get_handles().lock().await.clear(); }
         };
     }
@@ -169,21 +165,14 @@ pub mod stream {
     }
 
     pub async fn write(find: PitouFile) {
-        match count_and_proceed().await {
-            Some(true) => {
-                get_stream()
-                    .lock()
-                    .await
-                    .as_mut()
-                    .map(|l| l.push_back(find));
-            }
-            Some(false) => {
-                tokio::join! {
-                    terminate_stream(),
-                    abort_remaining_ops()
-                };
-            }
-            None => return,
+        if count_and_proceed().await {
+            get_stream()
+                .lock()
+                .await
+                .as_mut()
+                .map(|l| l.push_back(find));
+        } else {
+            abort_remaining_ops().await
         }
     }
 
@@ -192,9 +181,11 @@ pub mod stream {
     }
 
     pub async fn abort_remaining_ops() {
-        for handle in get_handles().lock().await.split_off(0).into_iter().rev() {
+        let mut handles = get_handles().lock().await;
+        for handle in handles.split_off(0).into_iter().rev() {
             handle.abort()
         }
+        std::mem::drop(handles);
     }
 
     pub async fn wait_for_all_ops() {
