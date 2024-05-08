@@ -183,6 +183,14 @@ impl PitouFile {
         Self::without_metadata(PitouFilePath::from_pathbuf(path))
     }
 
+    pub fn extension(&self) -> &str {
+        self.path
+            .path
+            .extension()
+            .map(|v| v.to_str().unwrap_or_default())
+            .unwrap_or_default()
+    }
+
     pub fn without_metadata(path: PitouFilePath) -> Self {
         Self {
             path,

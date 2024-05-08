@@ -415,6 +415,14 @@ impl StaticData {
         }
     }
 
+    pub fn search_result_selections(&self) -> Option<Vec<Rc<PitouFile>>> {
+        if let Selections::SearchResults(sr) = &*self.selections.borrow() {
+            Some(sr.iter().map(|v| v.inner.clone()).collect())
+        } else {
+            None
+        }
+    }
+
     pub fn select_folder_entry(&self, item: Rc<PitouFile>) {
         let mut selections = self.selections.borrow_mut();
         if let Selections::FolderEntries(fe) = &mut *selections {
