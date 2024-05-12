@@ -14,6 +14,7 @@ pub enum TransferState {
     Terminated(TransferSize),
 }
 
+#[derive(Clone, Copy, Serialize, Deserialize)]
 pub enum TransferMsg {
     Copy {
         id: TransferSessionID,
@@ -52,5 +53,6 @@ pub struct TransferSize {
 
 #[derive(Clone, Copy, Serialize, Deserialize)]
 pub struct TransferSessionID {
-    pub value: i64,
+    pub idx: i64,
+    pub parity: i64,
 }

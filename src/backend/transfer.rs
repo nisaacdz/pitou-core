@@ -124,7 +124,11 @@ fn add_new_session(copy: bool) -> Arc<TransferConfig> {
 
 fn generate_id() -> TransferSessionID {
     TransferSessionID {
-        value: get_sessions().lock().unwrap().len() as i64,
+        idx: get_sessions().lock().unwrap().len() as i64,
+        parity: std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as _,
     }
 }
 
@@ -148,8 +152,19 @@ pub fn get_all_active_sessions() -> Vec<TransferMsg> {
 }
 
 pub fn get_session_with_id(id: TransferSessionID) -> Option<TransferMsg> {
-    let idx = id.value as usize;
-    get_sessions().lock().unwrap().get(idx).map(|v| v.read())
+    let idx = id.idx as usize;
+    get_sessions()
+        .lock()
+        .unwrap()
+        .get(idx)
+        .map(|v| {
+            if id.parity == v.id.parity {
+                Some(v.read())
+            } else {
+                None
+            }
+        })
+        .flatten()
 }
 
 pub fn clean_dead_sessions() {
