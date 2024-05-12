@@ -1,6 +1,6 @@
 use crate::PitouFile;
 use serde::{Deserialize, Serialize};
-use std::collections::LinkedList;
+use std::{collections::LinkedList, time::Duration};
 
 pub enum SearchMsg {
     Active(LinkedList<PitouFile>),
@@ -8,7 +8,49 @@ pub enum SearchMsg {
 }
 
 #[derive(Clone, Copy, Serialize, Deserialize)]
-pub enum ActivityMsg {
-    Active,
-    Terminated,
+pub enum TransferState {
+    Initializing(u64),
+    Active(TransferSize),
+    Terminated(TransferSize),
+}
+
+pub enum TransferMsg {
+    Copy {
+        id: TransferSessionID,
+        state: TransferState,
+        time_elapsed: Duration,
+    },
+    Move {
+        id: TransferSessionID,
+        state: TransferState,
+        time_elapsed: Duration,
+    },
+}
+
+impl TransferMsg {
+    pub fn details(self) -> (TransferState, Duration) {
+        match self {
+            TransferMsg::Copy {
+                id: _,
+                state,
+                time_elapsed,
+            } => (state, time_elapsed),
+            TransferMsg::Move {
+                id: _,
+                state,
+                time_elapsed,
+            } => (state, time_elapsed),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Serialize, Deserialize)]
+pub struct TransferSize {
+    pub total: u64,
+    pub current: u64,
+}
+
+#[derive(Clone, Copy, Serialize, Deserialize)]
+pub struct TransferSessionID {
+    pub value: i64,
 }

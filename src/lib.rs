@@ -1,7 +1,7 @@
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use std::{cmp::Reverse, path::PathBuf, rc::Rc};
-mod extra;
+pub mod extra;
 
 #[cfg(feature = "frontend")]
 pub mod frontend;
@@ -203,7 +203,7 @@ impl PitouFile {
     }
 
     pub fn matches_find(self: &Rc<PitouFile>, key: &str) -> Option<Rc<PitouFile>> {
-        if SearchType::contains_ignore_case(key, self.name()) {
+        if crate::extra::contains_ignore_case(key, self.name()) {
             Some(self.clone())
         } else {
             None
@@ -359,6 +359,15 @@ impl PitouFileFilter {
         Self {
             files: true,
             links: true,
+            dirs: true,
+            sys_items: false,
+        }
+    }
+
+    pub fn only_dirs() -> Self {
+        Self {
+            files: false,
+            links: false,
             dirs: true,
             sys_items: false,
         }
@@ -541,7 +550,7 @@ impl Default for AppSettings {
             show_extensions: true,
             hide_system_files: true,
             show_thumbnails: false,
-            items_view: ItemsView::Tiles,
+            items_view: ItemsView::Grid,
             show_parents: false,
             items_zoom: 1.0,
             items_sort: None,
@@ -565,49 +574,4 @@ pub struct FrontendSearchOptions {
     pub skip_errors: bool,
     pub filter: PitouFileFilter,
     pub max_finds: usize,
-}
-
-#[derive(Clone)]
-pub enum SearchType {
-    Regex(regex::Regex),
-    MatchBegining(String),
-    MatchMiddle(String),
-    MatchEnding(String),
-}
-
-impl SearchType {
-    pub fn starts_with_ignore_case(key: &str, input: &str) -> bool {
-        if input.len() < key.len() {
-            return false;
-        }
-        input
-            .chars()
-            .take(key.len())
-            .zip(key.chars())
-            .all(|(w, k)| w.eq_ignore_ascii_case(&k))
-    }
-
-    pub fn ends_with_ignore_case(key: &str, input: &str) -> bool {
-        if input.len() < key.len() {
-            return false;
-        }
-        input
-            .chars()
-            .rev()
-            .take(key.len())
-            .zip(key.chars().rev())
-            .all(|(a, b)| a.eq_ignore_ascii_case(&b))
-    }
-
-    pub fn contains_ignore_case(key: &str, input: &str) -> bool {
-        let key = key.as_bytes();
-        let input = input.as_bytes();
-        if input.len() < key.len() {
-            return false;
-        }
-        input.windows(key.len()).any(|window| {
-            (0..window.len())
-                .all(|idx| (key[idx] as char).eq_ignore_ascii_case(&(window[idx] as char)))
-        })
-    }
 }

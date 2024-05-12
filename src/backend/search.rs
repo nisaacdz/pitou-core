@@ -1,6 +1,6 @@
 use std::{path::PathBuf, sync::Arc};
 
-use crate::{search::SimplifiedSearchOptions, PitouFile, PitouFileFilter, SearchType};
+use crate::{search::SimplifiedSearchOptions, PitouFile, PitouFileFilter};
 
 impl SimplifiedSearchOptions {
     pub fn try_into(self) -> Option<SearchOptions> {
@@ -55,28 +55,28 @@ impl SearchType {
                 if sensitive {
                     input.starts_with(key)
                 } else {
-                    Self::starts_with_ignore_case(key, input)
+                    crate::extra::starts_with_ignore_case(key, input)
                 }
             }
             Self::MatchMiddle(key) => {
                 if sensitive {
                     input.contains(key)
                 } else {
-                    Self::contains_ignore_case(key, input)
+                    crate::extra::contains_ignore_case(key, input)
                 }
             }
             Self::MatchEnding(key) => {
                 if sensitive {
                     input.ends_with(key)
                 } else {
-                    Self::ends_with_ignore_case(key, input)
+                    crate::extra::ends_with_ignore_case(key, input)
                 }
             }
         }
     }
 }
 
-pub mod stream {
+mod stream {
     use std::{collections::LinkedList, sync::OnceLock};
 
     use crate::{msg::SearchMsg, PitouFile};
@@ -238,6 +238,10 @@ impl SearchVariables {
     }
 }
 
+pub async fn read() -> crate::msg::SearchMsg {
+    stream::read().await
+}
+
 pub async fn search(options: SearchOptions) {
     let hardware_accelerate = options.hardware_accelerate;
     let max_finds = options.max_finds;
@@ -280,4 +284,12 @@ async fn recursive_search(directory: PathBuf, mut variables: SearchVariables) {
             stream::write(file).await;
         }
     }
+}
+
+#[derive(Clone)]
+pub enum SearchType {
+    Regex(regex::Regex),
+    MatchBegining(String),
+    MatchMiddle(String),
+    MatchEnding(String),
 }

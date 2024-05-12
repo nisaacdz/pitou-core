@@ -12,7 +12,6 @@ use crate::{
     PitouTrashItemMetadata,
 };
 use chrono::DateTime;
-use fs_extra::dir::CopyOptions;
 use trash::TrashItem;
 
 pub mod drive;
@@ -22,7 +21,7 @@ pub mod clipboard {
 
     use tokio::sync::Mutex;
 
-    pub(super) enum ClipboardItem {
+    pub(crate) enum ClipboardItem {
         Copied(Arc<Vec<PitouFile>>),
         Cut(Arc<Vec<PitouFile>>),
     }
@@ -62,7 +61,7 @@ pub mod clipboard {
         get_clipboard().lock().await.is_empty()
     }
 
-    pub(super) async fn paste() -> Option<ClipboardItem> {
+    pub(crate) async fn paste() -> Option<ClipboardItem> {
         let cb = get_clipboard();
         let mut guard = cb.lock().await;
         let items = guard.pop();
@@ -96,20 +95,6 @@ pub async fn copy(items: Vec<PitouFile>) {
 
 pub async fn cut(items: Vec<PitouFile>) {
     clipboard::cut(items).await
-}
-
-pub async fn paste(dir: PitouFile) {
-    match clipboard::paste().await {
-        None => (),
-        Some(v) => match v {
-            clipboard::ClipboardItem::Copied(u) => {
-                fs_extra::copy_items(&*u, &dir, &CopyOptions::new()).ok();
-            }
-            clipboard::ClipboardItem::Cut(u) => {
-                fs_extra::move_items(&*u, &dir, &CopyOptions::new()).ok();
-            }
-        },
-    }
 }
 
 pub fn open(file: PitouFilePath) -> std::io::Result<()> {

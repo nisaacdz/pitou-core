@@ -30,3 +30,37 @@ impl AsRef<std::path::Path> for PitouFile {
         &self.path.path
     }
 }
+
+pub fn starts_with_ignore_case(key: &str, input: &str) -> bool {
+    if input.len() < key.len() {
+        return false;
+    }
+    input
+        .chars()
+        .take(key.len())
+        .zip(key.chars())
+        .all(|(w, k)| w.eq_ignore_ascii_case(&k))
+}
+
+pub fn ends_with_ignore_case(key: &str, input: &str) -> bool {
+    if input.len() < key.len() {
+        return false;
+    }
+    input
+        .chars()
+        .rev()
+        .take(key.len())
+        .zip(key.chars().rev())
+        .all(|(a, b)| a.eq_ignore_ascii_case(&b))
+}
+
+pub fn contains_ignore_case(key: &str, input: &str) -> bool {
+    let key = key.as_bytes();
+    let input = input.as_bytes();
+    if input.len() < key.len() {
+        return false;
+    }
+    input.windows(key.len()).any(|window| {
+        (0..window.len()).all(|idx| (key[idx] as char).eq_ignore_ascii_case(&(window[idx] as char)))
+    })
+}
