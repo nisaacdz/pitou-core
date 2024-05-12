@@ -167,7 +167,7 @@ pub fn clean_dead_sessions() {
     let _ = std::mem::replace(&mut *sessions, new_sessions);
 }
 
-pub async fn copy_items(dst: PitouFilePath) -> Option<TransferSessionID> {
+pub async fn paste_items(dst: PitouFilePath) -> Option<TransferSessionID> {
     match clipboard::paste().await {
         None => None,
         Some(v) => match v {
@@ -185,8 +185,6 @@ pub async fn copy_items(dst: PitouFilePath) -> Option<TransferSessionID> {
     }
 }
 
-pub fn move_items() {}
-
 #[cfg(test)]
 mod test_mod {
     use crate::PitouFileSize;
@@ -203,7 +201,7 @@ mod test_mod {
 
             let items = vec![PitouFile::without_metadata(PitouFilePath::from_pathbuf(src_path))];
             super::super::copy(items).await;
-            if let Some(session_id) = super::copy_items(PitouFilePath::from_pathbuf(dst_path)).await {
+            if let Some(session_id) = super::paste_items(PitouFilePath::from_pathbuf(dst_path)).await {
                 let mut interval = IntervalStream::new(tokio::time::interval(std::time::Duration::from_millis(500)));
                 while let Some(_) = interval.next().await {
                     let msg = get_session_with_id(session_id).unwrap();

@@ -114,16 +114,16 @@ mod stream {
         }
     }
 
-    pub async fn terminate_stream() {
+    pub(super) async fn terminate_stream() {
         *get_finds().lock().await = 0;
     }
 
     /// checks if the stream is terminated
-    pub async fn is_terminated() -> bool {
+    pub(super) async fn is_terminated() -> bool {
         *get_finds().lock().await == 0
     }
 
-    pub(crate) async fn proceed_to_finish_stream() {
+    pub(super) async fn proceed_to_finish_stream() {
         loop {
             let mut hlock = get_handles().lock().await;
             if hlock.is_empty() {
@@ -138,7 +138,7 @@ mod stream {
         terminate_stream().await;
     }
 
-    pub(crate) async fn configure_stream(max_finds: usize) {
+    pub(super) async fn configure_stream(max_finds: usize) {
         tokio::join! {
             async move { let _ = get_stream().lock().await.insert(LinkedList::new()); },
             async move { *get_finds().lock().await = max_finds },
@@ -146,7 +146,7 @@ mod stream {
         };
     }
 
-    pub async fn read() -> SearchMsg {
+    pub(super) async fn read() -> SearchMsg {
         if is_terminated().await {
             get_stream()
                 .lock()
@@ -164,7 +164,7 @@ mod stream {
         }
     }
 
-    pub async fn write(find: PitouFile) {
+    pub(super) async fn write(find: PitouFile) {
         if count_and_proceed().await {
             get_stream()
                 .lock()
@@ -176,11 +176,11 @@ mod stream {
         }
     }
 
-    pub async fn append_handle(handle: JoinHandle<()>) {
+    pub(super) async fn append_handle(handle: JoinHandle<()>) {
         get_handles().lock().await.push_back(handle);
     }
 
-    pub async fn abort_remaining_ops() {
+    pub(super) async fn abort_remaining_ops() {
         let mut handles = get_handles().lock().await;
         for handle in handles.split_off(0).into_iter().rev() {
             handle.abort()
@@ -188,7 +188,7 @@ mod stream {
         std::mem::drop(handles);
     }
 
-    pub async fn wait_for_all_ops() {
+    pub(super) async fn wait_for_all_ops() {
         ()
     }
 }
@@ -238,8 +238,16 @@ impl SearchVariables {
     }
 }
 
-pub async fn read() -> crate::msg::SearchMsg {
+pub async fn read_stream() -> crate::msg::SearchMsg {
     stream::read().await
+}
+
+pub async fn terminate_search() {
+    stream::terminate_stream().await
+}
+
+pub async fn is_terminated() -> bool {
+    stream::is_terminated().await
 }
 
 pub async fn search(options: SearchOptions) {

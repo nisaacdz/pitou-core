@@ -1,7 +1,7 @@
 mod fs_ops;
-mod search;
-pub mod ser_de;
+mod ser_de;
+
+pub mod search;
 pub mod transfer;
 
 pub use fs_ops::*;
-pub use search::*;
