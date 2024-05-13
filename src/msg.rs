@@ -14,6 +14,12 @@ pub enum TransferState {
     Terminated(TransferSize),
 }
 
+impl TransferState {
+    pub const fn is_terminted(&self) -> bool {
+        matches!(self, Self::Terminated(_))
+    }
+}
+
 #[derive(Clone, Copy, Serialize, Deserialize)]
 pub enum TransferMsg {
     Copy {
@@ -27,6 +33,7 @@ pub enum TransferMsg {
         time_elapsed: Duration,
     },
 }
+
 
 impl TransferMsg {
     pub fn details(self) -> (TransferState, Duration) {
@@ -43,6 +50,20 @@ impl TransferMsg {
             } => (state, time_elapsed),
         }
     }
+
+    pub fn id(&self) -> TransferSessionID {
+        match self {
+            Self::Copy { id, state: _, time_elapsed: _ } => *id,
+            Self::Move { id, state: _, time_elapsed: _ } => *id,
+        }
+    }
+
+    pub fn is_terminated(&self) -> bool {
+        match self {
+            TransferMsg::Copy { id: _, state, time_elapsed: _ } => state.is_terminted(),
+            TransferMsg::Move { id: _, state, time_elapsed: _ } => state.is_terminted(),
+        }
+    }
 }
 
 #[derive(Clone, Copy, Serialize, Deserialize)]
@@ -51,7 +72,7 @@ pub struct TransferSize {
     pub current: u64,
 }
 
-#[derive(Clone, Copy, Serialize, Deserialize)]
+#[derive(Clone, Copy, Serialize, Deserialize, Hash, Eq, PartialEq)]
 pub struct TransferSessionID {
     pub idx: i64,
     pub parity: i64,

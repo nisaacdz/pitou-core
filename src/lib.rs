@@ -34,6 +34,13 @@ impl PitouFilePath {
         res
     }
 
+    pub fn extension(&self) -> &str {
+        self.path
+            .extension()
+            .map(|v| v.to_str().unwrap_or_default())
+            .unwrap_or_default()
+    }
+
     pub fn as_os_str(&self) -> &std::ffi::OsStr {
         self.path.as_os_str()
     }
@@ -183,19 +190,15 @@ impl PitouFile {
         Self::without_metadata(PitouFilePath::from_pathbuf(path))
     }
 
-    pub fn extension(&self) -> &str {
-        self.path
-            .path
-            .extension()
-            .map(|v| v.to_str().unwrap_or_default())
-            .unwrap_or_default()
-    }
-
     pub fn without_metadata(path: PitouFilePath) -> Self {
         Self {
             path,
             metadata: None,
         }
+    }
+
+    pub fn kind(&self) -> Option<PitouFileKind> {
+        self.metadata().as_ref().map(|v| v.kind)
     }
 
     pub fn full_path_str(&self) -> &str {
@@ -242,12 +245,16 @@ impl PitouFile {
     }
 
     pub fn name_without_extension(&self) -> &str {
-        let name = self.name();
-        let end = (0..name.len())
-            .rev()
-            .find(|&v| name.as_bytes()[v] == b'.')
-            .unwrap_or(name.len());
-        &name[0..end]
+        if self.is_dir() {
+            self.name()
+        } else {
+            let name = self.name();
+            let end = (0..name.len())
+                .rev()
+                .find(|&v| name.as_bytes()[v] == b'.')
+                .unwrap_or(name.len());
+            &name[0..end]
+        }
     }
 
     pub fn path(&self) -> &PitouFilePath {
