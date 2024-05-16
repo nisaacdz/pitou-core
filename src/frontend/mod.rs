@@ -175,7 +175,7 @@ impl TabCtx {
         Self {
             search_options: RefCell::new(FrontendSearchOptions::init()),
             folder_tracker: RefCell::new(None),
-            current_menu: RefCell::new(AppMenu::Explorer),
+            current_menu: RefCell::new(AppMenu::Home),
             search_results: RefCell::new(None),
             dir_children: RefCell::new(None),
             dir_siblings: RefCell::new(None),

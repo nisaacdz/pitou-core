@@ -71,6 +71,31 @@ pub struct PitouDateTime {
     pub datetime: NaiveDateTime,
 }
 
+impl PitouDateTime {
+    pub fn format_duration(duration: std::time::Duration) -> String {
+        const MINS: u64 = 60;
+        const HRS: u64 = 60 * 60;
+        const DAYS: u64 = 24 * 60 * 60;
+
+        let time = duration.as_secs();
+        if time <= 2 * MINS {
+            return format! {"{} secs", time};
+        }
+        let mins_time = time / MINS;
+        if mins_time <= 2 * HRS {
+            return format! {"{} mins", mins_time};
+        }
+        let hrs_time = time / HRS;
+        if hrs_time <= 2 * DAYS {
+            return format! {"{} hrs", hrs_time};
+        }
+
+        let days_time = time / DAYS;
+
+        return format! {"{} days", days_time};
+    }
+}
+
 #[derive(PartialEq, Clone, Copy, Serialize, Deserialize)]
 pub enum PitouFileKind {
     Directory,
@@ -557,7 +582,7 @@ impl Default for AppSettings {
             show_extensions: true,
             hide_system_files: true,
             show_thumbnails: false,
-            items_view: ItemsView::Grid,
+            items_view: ItemsView::Rows,
             show_parents: false,
             items_zoom: 1.0,
             items_sort: None,
